@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { AppGateway } from '../gateway/app.gateway';
 
 @Injectable()
 export class PurchasesService {
   constructor(
     private prisma: PrismaService,
     private inventoryService: InventoryService,
+    private appGateway: AppGateway,
   ) {}
 
   async findAll() {
@@ -34,7 +36,7 @@ export class PurchasesService {
   /** Create a purchase order (status: PENDING) */
   async create(data: any, userId: number) {
     const purchaseNumber = `PO-${Date.now()}`;
-    return this.prisma.purchase.create({
+    const purchase = await this.prisma.purchase.create({
       data: {
         purchaseNumber,
         supplierId: data.supplierId,
@@ -60,6 +62,20 @@ export class PurchasesService {
       },
       include: { items: true, supplier: true },
     });
+
+    // Notify managers about new purchase order
+    try {
+      this.appGateway.emitNewPurchase({
+        purchaseId: purchase.id,
+        purchaseNumber: purchase.purchaseNumber,
+        supplierId: purchase.supplierId,
+        amount: purchase.netAmount,
+      });
+    } catch (err) {
+      console.error('Failed to broadcast new purchase alert:', err.message);
+    }
+
+    return purchase;
   }
 
   /**
@@ -67,22 +83,24 @@ export class PurchasesService {
    * This is the key business automation: one approval triggers stock updates.
    */
   async approve(id: number, userId: number) {
-    const purchase = await this.prisma.purchase.update({
-      where: { id },
-      data: { status: 'APPROVED', approvedBy: userId, approvedAt: new Date() },
-      include: { items: { include: { product: true } } },
-    });
-    for (const item of purchase.items) {
-      await this.inventoryService.addStock({
-        productId: item.productId,
-        quantity: item.quantity,
-        unit: item.unit,
-        costPerUnit: item.unitPrice,
-        batchNumber: item.batchNumber ?? undefined,
-        expiryDate: item.expiryDate?.toISOString(),
+    return this.prisma.$transaction(async (tx) => {
+      const purchase = await tx.purchase.update({
+        where: { id },
+        data: { status: 'APPROVED', approvedBy: userId, approvedAt: new Date() },
+        include: { items: { include: { product: true } } },
       });
-    }
-    return purchase;
+      for (const item of purchase.items) {
+        await this.inventoryService.addStock({
+          productId: item.productId,
+          quantity: item.quantity,
+          unit: item.unit,
+          costPerUnit: item.unitPrice,
+          batchNumber: item.batchNumber ?? undefined,
+          expiryDate: item.expiryDate?.toISOString(),
+        }, tx);
+      }
+      return purchase;
+    });
   }
 
   async reject(id: number, userId: number) {

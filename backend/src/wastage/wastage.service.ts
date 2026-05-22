@@ -1,9 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { InventoryService } from '../inventory/inventory.service';
 
 @Injectable()
 export class WastageService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private inventoryService: InventoryService,
+  ) {}
 
   async findAll() {
     return this.prisma.wastage.findMany({
@@ -13,17 +17,34 @@ export class WastageService {
   }
 
   async create(data: any) {
-    return this.prisma.wastage.create({
-      data: {
-        productId: data.productId,
-        quantity: data.quantity,
-        unit: data.unit,
-        reason: data.reason,
-        valueAmount: data.valueAmount,
-        reportedAt: new Date(data.reportedAt),
-        notes: data.notes,
-      },
-      include: { product: true },
+    return this.prisma.$transaction(async (tx) => {
+      const wastage = await tx.wastage.create({
+        data: {
+          productId: data.productId,
+          quantity: data.quantity,
+          unit: data.unit,
+          reason: data.reason,
+          valueAmount: data.valueAmount,
+          reportedAt: new Date(data.reportedAt),
+          notes: data.notes,
+        },
+        include: { product: true },
+      });
+
+      const deduction = await this.inventoryService.deductStock(
+        data.productId,
+        data.quantity,
+        `Wastage - ${data.reason}`,
+        tx,
+      );
+
+      if (deduction.remaining > 0) {
+        throw new BadRequestException(
+          `Insufficient stock to log wastage of ${data.quantity} units. Unfulfilled: ${deduction.remaining}`,
+        );
+      }
+
+      return wastage;
     });
   }
 

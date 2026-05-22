@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
+import { AppGateway } from '../gateway/app.gateway';
 
 @Injectable()
 export class InventoryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private appGateway: AppGateway,
+  ) {}
 
   async findAll() {
     return this.prisma.inventory.findMany({
@@ -58,8 +62,9 @@ export class InventoryService {
   }
 
   /** Add stock entry and record IN movement */
-  async addStock(dto: CreateInventoryDto) {
-    const inventory = await this.prisma.inventory.create({
+  async addStock(dto: CreateInventoryDto, tx?: any) {
+    const client = tx || this.prisma;
+    const inventory = await client.inventory.create({
       data: {
         productId: dto.productId,
         batchNumber: dto.batchNumber,
@@ -72,7 +77,7 @@ export class InventoryService {
       },
       include: { product: true },
     });
-    await this.prisma.stockMovement.create({
+    await client.stockMovement.create({
       data: {
         inventoryId: inventory.id,
         type: 'IN',
@@ -87,8 +92,9 @@ export class InventoryService {
    * FIFO stock deduction across batches.
    * Returns { deducted, remaining } where remaining > 0 means insufficient stock.
    */
-  async deductStock(productId: number, quantity: number, reason: string) {
-    const inventories = await this.prisma.inventory.findMany({
+  async deductStock(productId: number, quantity: number, reason: string, tx?: any) {
+    const client = tx || this.prisma;
+    const inventories = await client.inventory.findMany({
       where: { productId, isExpired: false, quantity: { gt: 0 } },
       orderBy: { createdAt: 'asc' }, // FIFO
     });
@@ -96,15 +102,41 @@ export class InventoryService {
     for (const inv of inventories) {
       if (remaining <= 0) break;
       const deduct = Math.min(inv.quantity, remaining);
-      await this.prisma.inventory.update({
+      await client.inventory.update({
         where: { id: inv.id },
         data: { quantity: inv.quantity - deduct },
       });
-      await this.prisma.stockMovement.create({
+      await client.stockMovement.create({
         data: { inventoryId: inv.id, type: 'OUT', quantity: deduct, reason },
       });
       remaining -= deduct;
     }
+
+    // Dynamic warning trigger: check if updated quantity falls below threshold and emit WS event
+    try {
+      const product = await client.product.findUnique({
+        where: { id: productId },
+      });
+      if (product) {
+        const activeStock = await client.inventory.aggregate({
+          where: { productId, isExpired: false },
+          _sum: { quantity: true },
+        });
+        const currentQty = activeStock._sum.quantity || 0;
+        if (currentQty <= product.minStockLevel) {
+          this.appGateway.emitLowStockAlert({
+            productId,
+            productName: product.name,
+            currentQty,
+            minLevel: product.minStockLevel,
+          });
+        }
+      }
+    } catch (err) {
+      // Don't break database transaction if WS notification fails
+      console.error('Failed to broadcast low stock alert:', err.message);
+    }
+
     return { deducted: quantity - remaining, remaining };
   }
 

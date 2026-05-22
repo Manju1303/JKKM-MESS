@@ -2,10 +2,12 @@ import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { WastageService } from './wastage.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Kitchen')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('wastage')
 export class WastageController {
   constructor(private wastageService: WastageService) {}
@@ -29,6 +31,7 @@ export class WastageController {
   }
 
   @Post()
+  @Roles('Super Admin', 'Mess Manager', 'Store Keeper', 'Kitchen Staff')
   @ApiOperation({ summary: 'Report wastage' })
   create(@Body() data: any) {
     return this.wastageService.create(data);

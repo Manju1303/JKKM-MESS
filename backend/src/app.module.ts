@@ -14,7 +14,7 @@ import { ReportsModule } from './reports/reports.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { AiModule } from './ai/ai.module';
 import { PrismaModule } from './prisma/prisma.module';
-import { AppGateway } from './gateway/app.gateway';
+import { GatewayModule } from './gateway/gateway.module';
 
 @Module({
   imports: [
@@ -33,7 +33,7 @@ import { AppGateway } from './gateway/app.gateway';
     ReportsModule,
     AttendanceModule,
     AiModule,
+    GatewayModule,
   ],
-  providers: [AppGateway],
 })
 export class AppModule {}

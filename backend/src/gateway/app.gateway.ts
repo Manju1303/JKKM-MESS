@@ -8,6 +8,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 
 /**
  * AppGateway provides real-time WebSocket communication for:
@@ -29,14 +30,30 @@ export class AppGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
   private readonly logger = new Logger(AppGateway.name);
   private connectedClients = new Map<string, Socket>();
 
+  constructor(private readonly jwtService: JwtService) {}
+
   afterInit(server: Server) {
     this.logger.log('🔌 WebSocket Gateway initialized');
   }
 
   handleConnection(client: Socket) {
-    this.connectedClients.set(client.id, client);
-    this.logger.log(`Client connected: ${client.id} | Total: ${this.connectedClients.size}`);
-    client.emit('connected', { message: 'Connected to JKKM Mess ERP', clientId: client.id });
+    try {
+      const authHeader = client.handshake.auth?.token || client.handshake.headers?.authorization;
+      if (!authHeader) {
+        this.logger.warn(`Disconnecting unauthenticated WS client: ${client.id}`);
+        client.disconnect();
+        return;
+      }
+      const token = authHeader.replace('Bearer ', '');
+      const payload = this.jwtService.verify(token);
+      client.data = { user: payload };
+      this.connectedClients.set(client.id, client);
+      this.logger.log(`Client connected: ${client.id} (User: ${payload.email}) | Total: ${this.connectedClients.size}`);
+      client.emit('connected', { message: 'Connected to JKKM Mess ERP', clientId: client.id });
+    } catch (err) {
+      this.logger.warn(`Invalid JWT on WS connect, disconnecting ${client.id}: ${err.message}`);
+      client.disconnect();
+    }
   }
 
   handleDisconnect(client: Socket) {
@@ -47,8 +64,19 @@ export class AppGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
   /** Join a specific room (e.g., by role) */
   @SubscribeMessage('join-room')
   handleJoinRoom(client: Socket, room: string) {
+    const user = client.data?.user;
+    if (!user) {
+      this.logger.warn(`Unauthenticated client ${client.id} tried to join room ${room}`);
+      client.disconnect();
+      return { event: 'error', message: 'Unauthorized' };
+    }
+    // Restrict 'managers' room to 'Super Admin' or 'Mess Manager'
+    if (room === 'managers' && !['Super Admin', 'Mess Manager'].includes(user.role)) {
+      this.logger.warn(`User ${user.email} with role ${user.role} unauthorized to join room ${room}`);
+      return { event: 'error', message: 'Unauthorized' };
+    }
     client.join(room);
-    this.logger.log(`Client ${client.id} joined room: ${room}`);
+    this.logger.log(`Client ${client.id} (User: ${user.email}, Role: ${user.role}) joined room: ${room}`);
     return { event: 'joined', room };
   }
 

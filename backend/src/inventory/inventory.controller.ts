@@ -2,11 +2,13 @@ import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { InventoryService } from './inventory.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 
 @ApiTags('Inventory')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('inventory')
 export class InventoryController {
   constructor(private inventoryService: InventoryService) {}
@@ -50,6 +52,7 @@ export class InventoryController {
   }
 
   @Post()
+  @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
   @ApiOperation({ summary: 'Add stock to inventory (manual entry)' })
   addStock(@Body() dto: CreateInventoryDto) {
     return this.inventoryService.addStock(dto);

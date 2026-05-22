@@ -5,12 +5,14 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
 @ApiTags('Products')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('products')
 export class ProductsController {
   constructor(private productsService: ProductsService) {}
@@ -41,18 +43,21 @@ export class ProductsController {
   }
 
   @Post()
+  @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
   @ApiOperation({ summary: 'Create a new product' })
   create(@Body() dto: CreateProductDto) {
     return this.productsService.create(dto);
   }
 
   @Post('categories')
+  @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
   @ApiOperation({ summary: 'Create a new product category' })
   createCategory(@Body() data: { name: string; type: string; description?: string }) {
     return this.productsService.createCategory(data);
   }
 
   @Put(':id')
+  @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
   @ApiOperation({ summary: 'Update product details' })
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -62,6 +67,7 @@ export class ProductsController {
   }
 
   @Delete(':id')
+  @Roles('Super Admin', 'Mess Manager')
   @ApiOperation({ summary: 'Soft-delete product' })
   delete(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.delete(id);

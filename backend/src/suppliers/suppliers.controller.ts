@@ -4,10 +4,12 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { SuppliersService } from './suppliers.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Suppliers')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('suppliers')
 export class SuppliersController {
   constructor(private suppliersService: SuppliersService) {}
@@ -31,18 +33,21 @@ export class SuppliersController {
   }
 
   @Post()
+  @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
   @ApiOperation({ summary: 'Create a new supplier' })
   create(@Body() data: any) {
     return this.suppliersService.create(data);
   }
 
   @Put(':id')
+  @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
   @ApiOperation({ summary: 'Update supplier details' })
   update(@Param('id', ParseIntPipe) id: number, @Body() data: any) {
     return this.suppliersService.update(id, data);
   }
 
   @Delete(':id')
+  @Roles('Super Admin', 'Mess Manager')
   @ApiOperation({ summary: 'Deactivate supplier' })
   deactivate(@Param('id', ParseIntPipe) id: number) {
     return this.suppliersService.deactivate(id);

@@ -1,12 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { AppGateway } from '../gateway/app.gateway';
 
 @Injectable()
 export class KitchenService {
   constructor(
     private prisma: PrismaService,
     private inventoryService: InventoryService,
+    private appGateway: AppGateway,
   ) {}
 
   /**
@@ -16,36 +18,59 @@ export class KitchenService {
    * 3. Log into ConsumptionLog with headcount
    */
   async issueStock(data: any, userId: number) {
-    const issue = await this.prisma.dailyIssue.create({
-      data: {
-        issueDate: new Date(data.issueDate),
-        productId: data.productId,
-        quantity: data.quantity,
-        unit: data.unit,
-        meal: data.meal,
-        issuedById: userId,
-        notes: data.notes,
-      },
-      include: { product: true },
+    return this.prisma.$transaction(async (tx) => {
+      const issue = await tx.dailyIssue.create({
+        data: {
+          issueDate: new Date(data.issueDate),
+          productId: data.productId,
+          quantity: data.quantity,
+          unit: data.unit,
+          meal: data.meal,
+          issuedById: userId,
+          notes: data.notes,
+        },
+        include: { product: true },
+      });
+
+      const deduction = await this.inventoryService.deductStock(
+        data.productId,
+        data.quantity,
+        `Kitchen issue - ${data.meal}`,
+        tx,
+      );
+
+      if (deduction.remaining > 0) {
+        throw new BadRequestException(
+          `Insufficient stock for product. Needed ${data.quantity}, remaining unfulfilled: ${deduction.remaining}`,
+        );
+      }
+
+      await tx.consumptionLog.create({
+        data: {
+          dailyIssueId: issue.id,
+          date: new Date(data.issueDate),
+          productId: data.productId,
+          quantity: data.quantity,
+          unit: data.unit,
+          meal: data.meal,
+          headcount: data.headcount || 0,
+          perHeadUsage: data.headcount ? data.quantity / data.headcount : null,
+        },
+      });
+
+      // Emit kitchen issue alert
+      try {
+        this.appGateway.emitKitchenIssue({
+          productName: issue.product.name,
+          quantity: issue.quantity,
+          meal: issue.meal,
+        });
+      } catch (err) {
+        console.error('Failed to broadcast kitchen issue alert:', err.message);
+      }
+
+      return issue;
     });
-    await this.inventoryService.deductStock(
-      data.productId,
-      data.quantity,
-      `Kitchen issue - ${data.meal}`,
-    );
-    await this.prisma.consumptionLog.create({
-      data: {
-        dailyIssueId: issue.id,
-        date: new Date(data.issueDate),
-        productId: data.productId,
-        quantity: data.quantity,
-        unit: data.unit,
-        meal: data.meal,
-        headcount: data.headcount || 0,
-        perHeadUsage: data.headcount ? data.quantity / data.headcount : null,
-      },
-    });
-    return issue;
   }
 
   /** Get all issues for today grouped by meal */
