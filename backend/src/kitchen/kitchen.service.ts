@@ -73,7 +73,7 @@ export class KitchenService {
     });
   }
 
-  /** Get all issues for today grouped by meal */
+  /** Get all issues for today */
   async getTodayIssues() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -81,15 +81,27 @@ export class KitchenService {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const issues = await this.prisma.dailyIssue.findMany({
       where: { issueDate: { gte: today, lt: tomorrow } },
-      include: { product: true, issuedBy: { select: { name: true } } },
+      include: {
+        product: true,
+        issuedBy: { select: { name: true } },
+        consumptionLogs: true,
+      },
+      orderBy: { issueDate: 'desc' },
     });
-    // Group by meal
-    const grouped: Record<string, any[]> = {};
-    issues.forEach((i) => {
-      if (!grouped[i.meal]) grouped[i.meal] = [];
-      grouped[i.meal].push(i);
-    });
-    return grouped;
+
+    return issues.map((i) => ({
+      id: i.id,
+      issueDate: i.issueDate,
+      productId: i.productId,
+      productName: i.product.name,
+      quantity: i.quantity,
+      unit: i.unit,
+      meal: i.meal,
+      issuedByName: i.issuedBy.name,
+      headcount: i.consumptionLogs[0]?.headcount || 0,
+      perHeadUsage: i.consumptionLogs[0]?.perHeadUsage || null,
+      notes: i.notes,
+    }));
   }
 
   async getIssueHistory(days: number = 30) {
