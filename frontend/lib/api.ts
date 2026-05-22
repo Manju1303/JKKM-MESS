@@ -115,6 +115,11 @@ export const aiAPI = {
   getInsights: () => api.get('/ai/insights'),
   getReorderSuggestions: () => api.get('/ai/reorder-suggestions'),
   getAnomalies: () => api.get('/ai/anomalies'),
+  getPerStudentConsumption: () => api.get('/ai/per-student'),
+  getAttendanceForecast: (headcount: number) => api.get(`/ai/forecast-by-attendance?headcount=${headcount}`),
+  getStockRunout: () => api.get('/ai/stock-runout'),
+  getSeasonalAnalysis: () => api.get('/ai/seasonal'),
+  getWasteAnalytics: () => api.get('/ai/waste'),
 };
 
 export const attendanceAPI = {

@@ -1,5 +1,5 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { AiService } from './ai.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -32,5 +32,37 @@ export class AiController {
   @ApiOperation({ summary: 'Detect unusual spending patterns' })
   getAnomalies() {
     return this.aiService.detectSpendingAnomalies();
+  }
+
+  @Get('per-student')
+  @ApiOperation({ summary: 'Get consumption per student metrics per product' })
+  getPerStudentConsumption() {
+    return this.aiService.getPerStudentConsumption();
+  }
+
+  @Get('forecast-by-attendance')
+  @ApiOperation({ summary: 'Get predicted ingredient requirement based on student headcount' })
+  @ApiQuery({ name: 'headcount', required: true, type: Number })
+  getAttendanceForecast(@Query('headcount') headcount: string) {
+    const parsedHeadcount = parseInt(headcount) || 500;
+    return this.aiService.getAttendanceBasedForecasting(parsedHeadcount);
+  }
+
+  @Get('stock-runout')
+  @ApiOperation({ summary: 'Get future stock runout predictions' })
+  getStockRunout() {
+    return this.aiService.getFutureStockPrediction();
+  }
+
+  @Get('seasonal')
+  @ApiOperation({ summary: 'Get seasonal and weekly consumption trends' })
+  getSeasonalAnalysis() {
+    return this.aiService.getSeasonalAnalysis();
+  }
+
+  @Get('waste')
+  @ApiOperation({ summary: 'Get waste reduction and efficiency analytics' })
+  getWasteAnalytics() {
+    return this.aiService.getWasteReductionAnalytics();
   }
 }
