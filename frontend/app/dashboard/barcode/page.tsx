@@ -109,7 +109,7 @@ export default function BarcodePage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in">
-      <div className="bg-card border border-border rounded-xl p-6 flex flex-col md:flex-row items-center gap-6">
+      <section aria-label="Scanner Station Status" className="bg-card border border-border rounded-xl p-6 flex flex-col md:flex-row items-center gap-6">
         <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
           <QrCode className="w-8 h-8" />
         </div>
@@ -119,11 +119,11 @@ export default function BarcodePage() {
             Scan physical barcodes using a USB hardware scanner (which acts as a keyboard) or trigger a test scan below.
           </p>
         </div>
-      </div>
+      </section>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Scan Input Card */}
-        <div className="md:col-span-1 bg-card border border-border rounded-xl p-5 space-y-4">
+        <section aria-label="Scanner Controls" className="md:col-span-1 bg-card border border-border rounded-xl p-5 space-y-4">
           <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
             <Keyboard className="w-4 h-4 text-muted-foreground" />
             Scanner Input
@@ -178,10 +178,10 @@ export default function BarcodePage() {
               </button>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Results / Form Card */}
-        <div className="md:col-span-2 space-y-4">
+        <section aria-label="Product Scan Details" className="md:col-span-2 space-y-4">
           {success && (
             <div className="p-4 bg-green-500/10 border border-green-500/20 text-green-500 rounded-xl flex items-start gap-3">
               <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -317,7 +317,7 @@ export default function BarcodePage() {
               </p>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

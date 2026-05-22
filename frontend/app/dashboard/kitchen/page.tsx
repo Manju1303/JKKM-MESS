@@ -112,7 +112,7 @@ export default function KitchenPage() {
   return (
     <div className="space-y-6 animate-in">
       {/* Top metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <section aria-label="Kitchen Usage Summary" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
             <ChefHat className="w-5 h-5" />
@@ -144,10 +144,10 @@ export default function KitchenPage() {
             </h3>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Main Actions Panel */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between bg-card border border-border rounded-xl p-4">
+      <section aria-label="Consumption Filters" className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between bg-card border border-border rounded-xl p-4">
         <div className="flex flex-1 gap-2 flex-wrap w-full sm:w-auto">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -179,13 +179,13 @@ export default function KitchenPage() {
           <Plus className="w-4 h-4" />
           Issue Stock to Kitchen
         </button>
-      </div>
+      </section>
 
       {/* Grid: Form and Table */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Form Container */}
         {showForm && (
-          <div className="lg:col-span-1 bg-card border border-border rounded-xl p-5 space-y-4">
+          <section aria-label="Stock Issue Form" className="lg:col-span-1 bg-card border border-border rounded-xl p-5 space-y-4">
             <h3 className="font-bold text-foreground text-md flex items-center gap-2">
               <ChefHat className="w-5 h-5 text-primary" />
               Stock Issue Form
@@ -294,11 +294,11 @@ export default function KitchenPage() {
                 </button>
               </div>
             </form>
-          </div>
+          </section>
         )}
 
         {/* Table Container */}
-        <div className={cn(
+        <section aria-label="Daily Issue History" className={cn(
           "bg-card border border-border rounded-xl p-5 overflow-hidden",
           showForm ? "lg:col-span-2" : "lg:col-span-3"
         )}>
@@ -362,7 +362,7 @@ export default function KitchenPage() {
               </table>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

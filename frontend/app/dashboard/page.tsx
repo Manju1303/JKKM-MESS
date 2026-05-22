@@ -124,7 +124,7 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <section aria-label="Key Performance Indicators" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Inventory Items"
           value={totalItems}
@@ -160,10 +160,10 @@ export default function DashboardPage() {
           trend={3}
           isLoading={loading}
         />
-      </div>
+      </section>
 
       {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <section aria-label="Stock Trend and Waste Analytics" className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Stock level trend area chart */}
         <div className="lg:col-span-2 bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
@@ -232,10 +232,10 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <section aria-label="Daily Consumption and Expense Tracking" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Daily consumption bar chart */}
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
@@ -289,11 +289,11 @@ export default function DashboardPage() {
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </section>
 
       {/* Quick alerts row */}
       {(lowStockCount > 0 || expiringCount > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <section aria-label="Inventory Alerts" className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {lowStockCount > 0 && (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
               <div className="flex items-center gap-3 mb-2">
@@ -318,7 +318,7 @@ export default function DashboardPage() {
               </p>
             </div>
           )}
-        </div>
+        </section>
       )}
     </div>
   );

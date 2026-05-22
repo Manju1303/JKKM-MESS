@@ -30,7 +30,7 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={toggleMobileSidebar}
-          className="p-2 -ml-2 rounded-lg hover:bg-muted md:hidden transition-colors text-muted-foreground hover:text-foreground"
+          className="p-2 -ml-2 rounded-lg hover:bg-muted md:hidden transition-colors text-muted-foreground hover:text-foreground flex items-center justify-center"
           aria-label="Toggle mobile menu"
         >
           <Menu className="w-5 h-5" />
@@ -82,7 +82,7 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
         {/* Mobile Search Toggle */}
         <button
           onClick={() => setMobileSearchOpen(true)}
-          className="p-2 rounded-lg hover:bg-muted md:hidden transition-colors text-muted-foreground hover:text-foreground"
+          className="p-2 rounded-lg hover:bg-muted md:hidden transition-colors text-muted-foreground hover:text-foreground flex items-center justify-center"
           title="Search"
         >
           <Search className="w-4 h-4" />
@@ -91,7 +91,7 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
         {/* Theme toggle */}
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground flex items-center justify-center"
           title="Toggle theme"
         >
           {theme === 'dark'
@@ -102,7 +102,7 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
         {/* Notifications */}
         <Link
           href="/dashboard/notifications"
-          className="relative p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          className="relative p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground flex items-center justify-center"
           aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
         >
           <Bell className="w-4 h-4" />
