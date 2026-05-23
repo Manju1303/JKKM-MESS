@@ -134,13 +134,43 @@ export class KitchenService {
       where: { date: { gte: targetDate, lt: nextDay } },
       include: { dailyIssue: { include: { product: true } } },
     });
+
+    // Fetch latest purchase prices for the products issued today in parallel
+    const productIds = Array.from(new Set(logs.map((l) => l.productId)));
+    const pricesMap = new Map<number, number>();
+    await Promise.all(
+      productIds.map(async (pId) => {
+        const lastPurchaseItem = await this.prisma.purchaseItem.findFirst({
+          where: { productId: pId, purchase: { status: 'APPROVED' } },
+          orderBy: { purchase: { purchaseDate: 'desc' } },
+          select: { unitPrice: true },
+        });
+        if (lastPurchaseItem) {
+          pricesMap.set(pId, lastPurchaseItem.unitPrice);
+        } else {
+          // Fallback: find any inventory cost or 0
+          const firstInv = await this.prisma.inventory.findFirst({
+            where: { productId: pId },
+            orderBy: { createdAt: 'desc' },
+            select: { costPerUnit: true },
+          });
+          pricesMap.set(pId, firstInv?.costPerUnit ?? 0);
+        }
+      }),
+    );
+
     const summary = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'].map((meal) => {
       const mealLogs = logs.filter((l) => l.meal === meal);
       const totalCost = mealLogs.reduce((sum, l) => {
-        // cost approximation — real cost from last purchase
-        return sum;
+        const unitCost = pricesMap.get(l.productId) ?? 0;
+        return sum + l.quantity * unitCost;
       }, 0);
-      return { meal, items: mealLogs.length, totalHeadcount: mealLogs[0]?.headcount || 0 };
+      return {
+        meal,
+        items: mealLogs.length,
+        totalHeadcount: mealLogs[0]?.headcount || 0,
+        totalCost: Math.round(totalCost * 100) / 100,
+      };
     });
     return summary;
   }

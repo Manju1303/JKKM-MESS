@@ -115,6 +115,9 @@ model Inventory {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   movements         StockMovement[]
+
+  @@index([productId, isExpired, quantity])
+  @@index([expiryDate])
 }
 
 model StockMovement {
@@ -148,6 +151,8 @@ model Purchase {
   items          PurchaseItem[]
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+
+  @@index([purchaseDate])
 }
 
 model PurchaseItem {
@@ -178,6 +183,8 @@ model DailyIssue {
   notes       String?
   createdAt   DateTime @default(now())
   consumptionLogs ConsumptionLog[]
+
+  @@index([issueDate])
 }
 
 model ConsumptionLog {
@@ -192,6 +199,8 @@ model ConsumptionLog {
   headcount    Int        @default(0)
   perHeadUsage Float?
   createdAt    DateTime   @default(now())
+
+  @@index([date, productId])
 }
 
 model Wastage {

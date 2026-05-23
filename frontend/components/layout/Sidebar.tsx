@@ -74,8 +74,8 @@ export default function Sidebar() {
           sidebarCollapsed && 'md:justify-center'
         )}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl gradient-accent flex items-center justify-center flex-shrink-0 shadow-lg">
-              <Building2 className="w-5 h-5 text-white" />
+            <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-lg overflow-hidden p-1">
+              <img src="/logo.png" alt="JKKM Logo" className="w-full h-full object-contain" />
             </div>
             {(!sidebarCollapsed || mobileSidebarOpen) && (
               <div className="animate-in">

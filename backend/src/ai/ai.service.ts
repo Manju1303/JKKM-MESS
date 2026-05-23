@@ -35,13 +35,14 @@ export class AiService {
       });
 
       return Object.entries(grouped).map(([productId, data]) => {
-        const avg = data.quantities.reduce((s, q) => s + q, 0) / (data.quantities.length || 1);
-        const predicted7Days = avg * 7;
+        const totalConsumed = data.quantities.reduce((s, q) => s + q, 0);
+        const avgDailyUsage = totalConsumed / 30; // true average daily rate over a 30-day window
+        const predicted7Days = avgDailyUsage * 7;
         return {
           productId: parseInt(productId),
           productName: data.name,
           unit: data.unit,
-          avgDailyUsage: Math.round(avg * 100) / 100,
+          avgDailyUsage: Math.round(avgDailyUsage * 100) / 100,
           predicted7DayNeed: Math.round(predicted7Days * 100) / 100,
           recommendedOrderQty: Math.round(Math.max(predicted7Days * 1.2, data.min) * 100) / 100,
         };
@@ -148,23 +149,84 @@ export class AiService {
     }
   }
 
-  /** Forecast requirement based on user-input student count */
+  /** Forecast requirement based on user-input student count using meal-wise frequencies */
   async getAttendanceBasedForecasting(headcount: number) {
-    const perStudent = await this.getPerStudentConsumption();
-    return perStudent.map((p) => {
-      const singleMealQty = p.avgPerStudentMeal * headcount;
-      const dailyQty = singleMealQty * 3; // Breakfast, Lunch, Dinner
-      const weeklyQty = dailyQty * 7;
-      return {
-        productId: p.productId,
-        productName: p.productName,
-        unit: p.unit,
-        perStudentMeal: p.avgPerStudentMeal,
-        predictedMealNeed: Math.round(singleMealQty * 100) / 100,
-        predictedDailyNeed: Math.round(dailyQty * 100) / 100,
-        predictedWeeklyNeed: Math.round(weeklyQty * 100) / 100,
-      };
-    });
+    try {
+      const logs = await this.prisma.consumptionLog.findMany({
+        where: { headcount: { gt: 0 } },
+        include: { dailyIssue: { include: { product: true } } },
+      });
+
+      if (logs.length === 0) {
+        const perStudent = await this.getPerStudentConsumption();
+        return perStudent.map((p) => {
+          const singleMealQty = p.avgPerStudentMeal * headcount;
+          const dailyQty = singleMealQty * 3; // Fallback
+          return {
+            productId: p.productId,
+            productName: p.productName,
+            unit: p.unit,
+            perStudentMeal: p.avgPerStudentMeal,
+            predictedMealNeed: Math.round(singleMealQty * 100) / 100,
+            predictedDailyNeed: Math.round(dailyQty * 100) / 100,
+            predictedWeeklyNeed: Math.round(dailyQty * 7 * 100) / 100,
+          };
+        });
+      }
+
+      // Group logs by productId and meal type (to dynamically weigh serving frequencies)
+      const productMeals: Record<number, Record<string, { totalQty: number; totalHeadcount: number }>> = {};
+      const productInfo: Record<number, { name: string; unit: string; totalQty: number; totalHeadcount: number }> = {};
+
+      logs.forEach((l) => {
+        const p = l.dailyIssue?.product;
+        if (!p) return;
+
+        if (!productMeals[l.productId]) productMeals[l.productId] = {};
+        const mealKey = l.meal.toUpperCase();
+        if (!productMeals[l.productId][mealKey]) {
+          productMeals[l.productId][mealKey] = { totalQty: 0, totalHeadcount: 0 };
+        }
+        productMeals[l.productId][mealKey].totalQty += l.quantity;
+        productMeals[l.productId][mealKey].totalHeadcount += l.headcount;
+
+        if (!productInfo[l.productId]) {
+          productInfo[l.productId] = { name: p.name, unit: l.unit, totalQty: 0, totalHeadcount: 0 };
+        }
+        productInfo[l.productId].totalQty += l.quantity;
+        productInfo[l.productId].totalHeadcount += l.headcount;
+      });
+
+      return Object.entries(productInfo).map(([prodId, info]) => {
+        const productId = parseInt(prodId);
+        const mealsMap = productMeals[productId];
+
+        // Sum up per student consumption across all meals this product was served in
+        let sumPerStudentDaily = 0;
+        Object.values(mealsMap).forEach((m) => {
+          if (m.totalHeadcount > 0) {
+            sumPerStudentDaily += m.totalQty / m.totalHeadcount;
+          }
+        });
+
+        const overallAvgPerMeal = info.totalHeadcount > 0 ? info.totalQty / info.totalHeadcount : 0;
+        const singleMealQty = overallAvgPerMeal * headcount;
+        const dailyQty = sumPerStudentDaily * headcount;
+        const weeklyQty = dailyQty * 7;
+
+        return {
+          productId,
+          productName: info.name,
+          unit: info.unit,
+          perStudentMeal: Math.round(overallAvgPerMeal * 10000) / 10000,
+          predictedMealNeed: Math.round(singleMealQty * 100) / 100,
+          predictedDailyNeed: Math.round(dailyQty * 100) / 100,
+          predictedWeeklyNeed: Math.round(weeklyQty * 100) / 100,
+        };
+      });
+    } catch (e) {
+      return [];
+    }
   }
 
   /** Predict days of stock remaining for each item */

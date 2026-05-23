@@ -18,19 +18,6 @@ export class WastageService {
 
   async create(data: any) {
     return this.prisma.$transaction(async (tx) => {
-      const wastage = await tx.wastage.create({
-        data: {
-          productId: data.productId,
-          quantity: data.quantity,
-          unit: data.unit,
-          reason: data.reason,
-          valueAmount: data.valueAmount,
-          reportedAt: new Date(data.reportedAt),
-          notes: data.notes,
-        },
-        include: { product: true },
-      });
-
       const deduction = await this.inventoryService.deductStock(
         data.productId,
         data.quantity,
@@ -43,6 +30,24 @@ export class WastageService {
           `Insufficient stock to log wastage of ${data.quantity} units. Unfulfilled: ${deduction.remaining}`,
         );
       }
+
+      const calculatedValue = deduction.affectedBatches.reduce(
+        (sum, batch) => sum + batch.quantity * batch.costPerUnit,
+        0,
+      );
+
+      const wastage = await tx.wastage.create({
+        data: {
+          productId: data.productId,
+          quantity: data.quantity,
+          unit: data.unit,
+          reason: data.reason,
+          valueAmount: Math.round(calculatedValue * 100) / 100,
+          reportedAt: new Date(data.reportedAt),
+          notes: data.notes,
+        },
+        include: { product: true },
+      });
 
       return wastage;
     });

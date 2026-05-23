@@ -17,12 +17,38 @@ export class InventoryService {
     });
   }
 
-  /** Returns items where current quantity <= minStockLevel */
+  /** Returns items where aggregate current quantity <= minStockLevel */
   async getLowStock() {
-    const inventories = await this.prisma.inventory.findMany({
-      include: { product: true },
+    const stockSums = await this.prisma.inventory.groupBy({
+      by: ['productId'],
+      where: { isExpired: false, quantity: { gt: 0 } },
+      _sum: { quantity: true },
     });
-    return inventories.filter((inv) => inv.quantity <= inv.product.minStockLevel);
+
+    const stockMap = new Map<number, number>(
+      stockSums.map((s) => [s.productId, s._sum.quantity ?? 0])
+    );
+
+    const products = await this.prisma.product.findMany({
+      where: { isActive: true },
+      include: { category: true },
+    });
+
+    const lowStockProducts = products.filter((prod) => {
+      const currentStock = stockMap.get(prod.id) ?? 0;
+      return currentStock <= prod.minStockLevel;
+    });
+
+    return lowStockProducts.map((prod) => ({
+      id: prod.id,
+      productId: prod.id,
+      quantity: stockMap.get(prod.id) ?? 0,
+      unit: prod.unit,
+      costPerUnit: 0,
+      product: prod,
+      createdAt: prod.createdAt,
+      updatedAt: prod.updatedAt,
+    }));
   }
 
   /** Returns items expiring within `days` days */
@@ -89,16 +115,21 @@ export class InventoryService {
   }
 
   /**
-   * FIFO stock deduction across batches.
-   * Returns { deducted, remaining } where remaining > 0 means insufficient stock.
+   * FEFO stock deduction across batches (with FIFO fallback).
+   * Returns { deducted, remaining, affectedBatches } where remaining > 0 means insufficient stock.
    */
   async deductStock(productId: number, quantity: number, reason: string, tx?: any) {
     const client = tx || this.prisma;
     const inventories = await client.inventory.findMany({
       where: { productId, isExpired: false, quantity: { gt: 0 } },
-      orderBy: { createdAt: 'asc' }, // FIFO
+      orderBy: [
+        { expiryDate: { sort: 'asc', nulls: 'last' } },
+        { createdAt: 'asc' },
+      ],
     });
     let remaining = quantity;
+    const affectedBatches: { id: number; quantity: number; costPerUnit: number }[] = [];
+
     for (const inv of inventories) {
       if (remaining <= 0) break;
       const deduct = Math.min(inv.quantity, remaining);
@@ -108,6 +139,11 @@ export class InventoryService {
       });
       await client.stockMovement.create({
         data: { inventoryId: inv.id, type: 'OUT', quantity: deduct, reason },
+      });
+      affectedBatches.push({
+        id: inv.id,
+        quantity: deduct,
+        costPerUnit: inv.costPerUnit,
       });
       remaining -= deduct;
     }
@@ -119,7 +155,7 @@ export class InventoryService {
       });
       if (product) {
         const activeStock = await client.inventory.aggregate({
-          where: { productId, isExpired: false },
+          where: { productId, isExpired: false, quantity: { gt: 0 } },
           _sum: { quantity: true },
         });
         const currentQty = activeStock._sum.quantity || 0;
@@ -137,7 +173,7 @@ export class InventoryService {
       console.error('Failed to broadcast low stock alert:', err.message);
     }
 
-    return { deducted: quantity - remaining, remaining };
+    return { deducted: quantity - remaining, remaining, affectedBatches };
   }
 
   async getMovements(productId?: number) {

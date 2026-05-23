@@ -41,8 +41,8 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-accent mb-4 shadow-2xl">
-            <Building2 className="w-9 h-9 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white mb-4 shadow-2xl overflow-hidden p-2">
+            <img src="/logo.png" alt="JKKM Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-3xl font-bold text-white">JKKM Mess ERP</h1>
           <p className="text-white/60 mt-1 text-sm">Enterprise Hostel Mess Management System</p>
