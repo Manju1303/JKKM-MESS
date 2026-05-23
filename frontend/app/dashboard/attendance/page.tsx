@@ -120,7 +120,7 @@ export default function AttendancePage() {
   return (
     <div className="space-y-6 animate-in">
       {/* Attendance Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <section aria-label="Attendance Summary Statistics" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="stat-card bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
           <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/15 text-primary">
             <Users className="w-5 h-5" />
@@ -153,7 +153,7 @@ export default function AttendancePage() {
             <p className="text-xs text-muted-foreground/75 mt-1">Max demand during LUNCH</p>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Grid: Chart & Form */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -286,7 +286,7 @@ export default function AttendancePage() {
       </div>
 
       {/* Recent Headcount Logs Table */}
-      <div className="bg-card border border-border rounded-xl p-5">
+      <section aria-label="Recent Attendance Logs" className="bg-card border border-border rounded-xl p-5">
         <h3 className="font-semibold text-foreground text-base mb-1">Recent Attendance Logs</h3>
         <p className="text-xs text-muted-foreground mb-4">Historical record of registered counts</p>
 
@@ -334,7 +334,7 @@ export default function AttendancePage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

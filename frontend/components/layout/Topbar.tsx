@@ -83,6 +83,7 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
         <button
           onClick={() => setMobileSearchOpen(true)}
           className="p-2 rounded-lg hover:bg-muted md:hidden transition-colors text-muted-foreground hover:text-foreground flex items-center justify-center"
+          aria-label="Open search"
           title="Search"
         >
           <Search className="w-4 h-4" />
@@ -92,7 +93,8 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground flex items-center justify-center"
-          title="Toggle theme"
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {theme === 'dark'
             ? <Sun className="w-4 h-4" />

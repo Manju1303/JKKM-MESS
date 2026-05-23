@@ -176,6 +176,18 @@ export default function UsersPage() {
     }
   };
 
+  // Close modals on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowAddModal(false);
+        setShowEditModal(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Filter
   const filteredUsers = users.filter(u => {
     const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -327,9 +339,21 @@ export default function UsersPage() {
 
       {/* Add User Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in">
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-user-title"
+        >
           <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
-            <h3 className="text-base font-bold text-foreground mb-1">Add Staff Member</h3>
+            <button
+              onClick={() => setShowAddModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="Close add user dialog"
+            >
+              <XCircle className="w-4 h-4" />
+            </button>
+            <h3 id="add-user-title" className="text-base font-bold text-foreground mb-1">Add Staff Member</h3>
             <p className="text-xs text-muted-foreground mb-4">Register a new login account with specific ERP roles</p>
 
             <form onSubmit={handleCreateUser} className="space-y-4">
@@ -418,9 +442,21 @@ export default function UsersPage() {
 
       {/* Edit Role Modal */}
       {showEditModal && selectedUser && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in">
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-role-title"
+        >
           <div className="bg-card border border-border rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
-            <h3 className="text-base font-bold text-foreground mb-1">Edit User Role</h3>
+            <button
+              onClick={() => setShowEditModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="Close edit role dialog"
+            >
+              <XCircle className="w-4 h-4" />
+            </button>
+            <h3 id="edit-role-title" className="text-base font-bold text-foreground mb-1">Edit User Role</h3>
             <p className="text-xs text-muted-foreground mb-4">Modify permissions for <span className="font-bold text-foreground">{selectedUser.name}</span></p>
 
             <form onSubmit={handleUpdateRole} className="space-y-4">

@@ -84,7 +84,7 @@ export default function InventoryPage() {
   return (
     <div className="space-y-6 animate-in">
       {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section aria-label="Inventory Summary" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Items', value: items.length, icon: Package,       color: 'text-primary',     bg: 'bg-primary/10' },
           { label: 'Low Stock',   value: lowCount,     icon: AlertTriangle, color: 'text-amber-500',   bg: 'bg-amber-500/10' },
@@ -101,7 +101,7 @@ export default function InventoryPage() {
             </div>
           </div>
         ))}
-      </div>
+      </section>
 
       {/* Toolbar */}
       <div className="bg-card border border-border rounded-xl p-4">

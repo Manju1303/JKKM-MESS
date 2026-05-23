@@ -112,11 +112,13 @@ export default function NotificationsPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-border pb-1">
+      <div className="flex gap-2 border-b border-border pb-1" role="tablist" aria-label="Notification filters">
         {(['ALL', 'UNREAD', 'CRITICAL'] as const).map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
+            role="tab"
+            aria-selected={filter === f}
             className={cn(
               'px-4 py-2 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all',
               filter === f
@@ -204,6 +206,7 @@ export default function NotificationsPage() {
                   <button
                     onClick={() => handleMarkAsRead(alert.id)}
                     className="p-1.5 rounded-lg bg-muted/70 hover:bg-primary hover:text-white border border-border text-muted-foreground hover:border-primary transition-all flex items-center gap-1 text-[10px] font-semibold flex-shrink-0"
+                    aria-label={`Mark "${alert.title}" as read`}
                     title="Mark as read"
                   >
                     <Check className="w-3.5 h-3.5" /> Mark read

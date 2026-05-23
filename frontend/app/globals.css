@@ -53,17 +53,47 @@
   --ring: 224 76% 58%;
 }
 
+html { scroll-behavior: smooth; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 *:focus-visible {
   outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
+  border-radius: 2px;
 }
-body { font-family: 'Inter', system-ui, sans-serif; background-color: hsl(var(--background)); color: hsl(var(--foreground)); }
+body { font-family: 'Inter', system-ui, sans-serif; background-color: hsl(var(--background)); color: hsl(var(--foreground)); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: hsl(var(--muted)); }
-::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+/* Skip to content for keyboard users */
+.skip-to-content {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: 0 0 0.5rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s;
+}
+.skip-to-content:focus { top: 0; }
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.6); }
+::-webkit-scrollbar-corner { background: transparent; }
 
 .gradient-primary { background: linear-gradient(135deg, hsl(224, 76%, 48%) 0%, hsl(224, 90%, 32%) 100%); }
 .gradient-accent { background: linear-gradient(135deg, hsl(28, 95%, 50%) 0%, hsl(28, 90%, 40%) 100%); }
@@ -82,7 +112,7 @@ body { font-family: 'Inter', system-ui, sans-serif; background-color: hsl(var(--
 
 .sidebar-item { transition: all 0.15s ease; }
 .sidebar-item:hover { background: rgba(255, 255, 255, 0.08); }
-.sidebar-item.active { background: rgba(255, 255, 255, 0.15); border-left: 3px solid hsl(28, 95%, 50%); }
+.sidebar-item.active { background: rgba(255, 255, 255, 0.15); border-left: 3px solid hsl(28, 95%, 50%); padding-left: calc(0.75rem - 3px); }
 
 /* ─── Premium Login Form Styles ────────────────────────────────────────── */
 .login-card {

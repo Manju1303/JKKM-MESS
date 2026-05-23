@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
@@ -43,6 +44,17 @@ export default function Sidebar() {
     setMobileSidebarOpen(false);
   };
 
+  // Close sidebar on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileSidebarOpen) {
+        closeMobileSidebar();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [mobileSidebarOpen]);
+
   const handleLogout = () => {
     closeMobileSidebar();
     logout();
@@ -55,6 +67,7 @@ export default function Sidebar() {
         <div
           className="fixed inset-0 z-40 bg-black/60 md:hidden backdrop-blur-xs transition-opacity duration-300"
           onClick={closeMobileSidebar}
+          aria-hidden="true"
         />
       )}
 
@@ -108,7 +121,7 @@ export default function Sidebar() {
         </button>
 
         {/* Navigation */}
-        <nav className="flex-1 py-4 overflow-y-auto overflow-x-hidden scrollbar-thin">
+        <nav className="flex-1 py-4 overflow-y-auto overflow-x-hidden scrollbar-thin" aria-label="Main navigation">
           {(!sidebarCollapsed || mobileSidebarOpen) && (
             <p className="text-white/30 text-xs font-semibold uppercase tracking-wider px-4 mb-2">
               Main Menu

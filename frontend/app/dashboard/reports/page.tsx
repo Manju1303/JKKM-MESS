@@ -90,6 +90,8 @@ export default function ReportsPage() {
         <button
           onClick={fetchReports}
           className="p-2 rounded-lg bg-muted border border-border text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+          aria-label="Refresh reports list"
+          title="Refresh"
         >
           <RefreshCw className="w-4 h-4" />
         </button>

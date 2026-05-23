@@ -146,10 +146,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      <a href="#main-content" className="skip-to-content">Skip to main content</a>
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Topbar title={page.title} subtitle={page.subtitle} />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main id="main-content" className="flex-1 overflow-y-auto p-6" aria-label={`${page.title} content area`}>
           {children}
         </main>
       </div>
