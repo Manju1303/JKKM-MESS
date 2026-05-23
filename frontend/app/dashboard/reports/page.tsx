@@ -29,7 +29,7 @@ export default function ReportsPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace('/api/v1', '') : 'http://localhost:3001';
+  const API_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
 
   useEffect(() => {
     fetchReports();

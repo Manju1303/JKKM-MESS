@@ -336,7 +336,9 @@ export default function SettingsPage() {
                     <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
                     <p className="text-sm font-bold text-foreground">API Running</p>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">Port 3001 Connection OK</p>
+                  <p className="text-[10px] text-muted-foreground mt-1 font-mono truncate">
+                    {process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'}
+                  </p>
                 </div>
 
                 <div className="p-4 rounded-xl border border-border bg-muted/20 flex flex-col justify-between h-28">
