@@ -45,8 +45,6 @@ export default function LoginPage() {
             <img src="/logo.png" alt="JKKM Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-3xl font-bold text-white">JKKM Mess ERP</h1>
-          <p className="text-white/60 mt-1 text-sm">Enterprise Hostel Mess Management System</p>
-          <p className="text-white/40 text-xs mt-1">JKKM College, Erode District, Tamil Nadu</p>
         </div>
 
         {/* Login Card */}
