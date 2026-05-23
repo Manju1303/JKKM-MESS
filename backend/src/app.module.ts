@@ -10,7 +10,6 @@ import { KitchenModule } from './kitchen/kitchen.module';
 import { ConsumptionModule } from './consumption/consumption.module';
 import { WastageModule } from './wastage/wastage.module';
 import { NotificationsModule } from './notifications/notifications.module';
-import { ReportsModule } from './reports/reports.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { AiModule } from './ai/ai.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -30,7 +29,6 @@ import { GatewayModule } from './gateway/gateway.module';
     ConsumptionModule,
     WastageModule,
     NotificationsModule,
-    ReportsModule,
     AttendanceModule,
     AiModule,
     GatewayModule,
