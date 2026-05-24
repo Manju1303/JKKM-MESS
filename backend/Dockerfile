@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install openssl & libc6-compat for Prisma engine compatibility on Alpine
+RUN apk add --no-cache openssl libc6-compat
+
 # Copy dependency files first (layer cache optimisation)
 COPY package*.json ./
 COPY prisma ./prisma/
@@ -21,6 +24,9 @@ RUN npm run build
 FROM node:20-alpine AS production
 
 WORKDIR /app
+
+# Install openssl & libc6-compat for Prisma engine compatibility on Alpine
+RUN apk add --no-cache openssl libc6-compat
 
 # Copy dependency files
 COPY package*.json ./
