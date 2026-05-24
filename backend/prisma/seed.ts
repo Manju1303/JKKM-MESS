@@ -1,5 +1,29 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import * as dns from 'dns';
+
+// CONNECTIVITY FIX: Override DNS lookup to bypass local DNS blocks on Neon DB
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+const originalLookup = dns.lookup;
+(dns as any).lookup = function (hostname: string, options: any, callback: any) {
+  if (typeof options === 'function') {
+    callback = options;
+    options = {};
+  }
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return originalLookup(hostname, options, callback);
+  }
+  dns.resolve4(hostname, (err, addresses) => {
+    if (err || !addresses || addresses.length === 0) {
+      return originalLookup(hostname, options, callback);
+    }
+    if (options.all) {
+      callback(null, addresses.map((addr) => ({ address: addr, family: 4 })));
+    } else {
+      callback(null, addresses[0], 4);
+    }
+  });
+};
 
 const prisma = new PrismaClient();
 
@@ -19,24 +43,29 @@ async function main() {
       create: { name: 'Mess Manager', description: 'Manage purchases, inventory, reports' },
     }),
     prisma.role.upsert({
+      where: { name: 'Storekeeper' },
+      update: {},
+      create: { name: 'Storekeeper', description: 'Manage inventory and purchases' },
+    }),
+    prisma.role.upsert({
       where: { name: 'Kitchen Staff' },
       update: {},
       create: { name: 'Kitchen Staff', description: 'Issue stock, log consumption' },
-    }),
-    prisma.role.upsert({
-      where: { name: 'Store Keeper' },
-      update: {},
-      create: { name: 'Store Keeper', description: 'Manage inventory and purchases' },
     }),
     prisma.role.upsert({
       where: { name: 'Accountant' },
       update: {},
       create: { name: 'Accountant', description: 'View financial reports' },
     }),
+    prisma.role.upsert({
+      where: { name: 'Management Viewer' },
+      update: {},
+      create: { name: 'Management Viewer', description: 'Read-only analytics and forecasts' },
+    }),
   ]);
   console.log(`✅ Created ${roles.length} roles`);
 
-  // ─── Super Admin User ─────────────────────────────────────────────
+  // ─── Demo Users ───────────────────────────────────────────────────
   const adminPassword = await bcrypt.hash('Admin@123', 12);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@jkkm.edu.in' },
@@ -65,7 +94,23 @@ async function main() {
       email: 'manager@jkkm.edu.in',
       password: managerPassword,
       phone: '9876543211',
-      roleId: roles[1].id,
+      roleId: roles[1].id, // Mess Manager
+    },
+  });
+
+  // Storekeeper
+  const storekeeperPassword = await bcrypt.hash('Storekeeper@123', 12);
+  await prisma.user.upsert({
+    where: { email: 'store@jkkm.edu.in' },
+    update: {
+      password: storekeeperPassword,
+    },
+    create: {
+      name: 'Srinivasan Murugan',
+      email: 'store@jkkm.edu.in',
+      password: storekeeperPassword,
+      phone: '9786543210',
+      roleId: roles[2].id, // Storekeeper
     },
   });
 
@@ -81,7 +126,23 @@ async function main() {
       email: 'kitchen@jkkm.edu.in',
       password: staffPassword,
       phone: '9876543212',
-      roleId: roles[2].id,
+      roleId: roles[3].id, // Kitchen Staff
+    },
+  });
+
+  // Accountant
+  const accountantPassword = await bcrypt.hash('Accountant@123', 12);
+  await prisma.user.upsert({
+    where: { email: 'accounts@jkkm.edu.in' },
+    update: {
+      password: accountantPassword,
+    },
+    create: {
+      name: 'Venkatesh Iyer',
+      email: 'accounts@jkkm.edu.in',
+      password: accountantPassword,
+      phone: '8122345678',
+      roleId: roles[4].id, // Accountant
     },
   });
   console.log('✅ Demo users created');
@@ -133,7 +194,7 @@ async function main() {
 
   // ─── Products ─────────────────────────────────────────────────────
   const products = [
-    { name: 'Ponni Rice', code: 'RICE-001', categoryId: categories[0].id, type: 'BULK', unit: 'KG', unitSize: 25, minStockLevel: 100 },
+    { name: 'Ponni Rice', code: 'RICE-001', barcode: 'RICE1001', categoryId: categories[0].id, type: 'BULK', unit: 'KG', unitSize: 25, minStockLevel: 100 },
     { name: 'Wheat Flour (Atta)', code: 'ATTA-001', categoryId: categories[0].id, type: 'BULK', unit: 'KG', unitSize: 50, minStockLevel: 80 },
     { name: 'Tomatoes', code: 'VEG-001', categoryId: categories[1].id, type: 'VEGETABLE', unit: 'KG', minStockLevel: 20 },
     { name: 'Onions', code: 'VEG-002', categoryId: categories[1].id, type: 'VEGETABLE', unit: 'KG', minStockLevel: 30 },
@@ -143,7 +204,7 @@ async function main() {
     { name: 'Turmeric Powder', code: 'SPICE-001', categoryId: categories[3].id, type: 'PACKAGED', unit: 'KG', unitSize: 1, minStockLevel: 5 },
     { name: 'Red Chilli Powder', code: 'SPICE-002', categoryId: categories[3].id, type: 'PACKAGED', unit: 'KG', unitSize: 1, minStockLevel: 5 },
     { name: 'Coriander Powder', code: 'SPICE-003', categoryId: categories[3].id, type: 'PACKAGED', unit: 'KG', unitSize: 1, minStockLevel: 3 },
-    { name: 'Fresh Milk', code: 'DAIRY-001', categoryId: categories[4].id, type: 'PACKAGED', unit: 'LITRE', minStockLevel: 50 },
+    { name: 'Fresh Milk', code: 'DAIRY-001', barcode: 'MILK2002', categoryId: categories[4].id, type: 'PACKAGED', unit: 'LITRE', minStockLevel: 50 },
     { name: 'Toor Dal', code: 'PULSE-001', categoryId: categories[5].id, type: 'BULK', unit: 'KG', unitSize: 25, minStockLevel: 40 },
     { name: 'Moong Dal', code: 'PULSE-002', categoryId: categories[5].id, type: 'BULK', unit: 'KG', unitSize: 25, minStockLevel: 20 },
     { name: 'Tea Powder', code: 'BEV-001', categoryId: categories[6].id, type: 'PACKAGED', unit: 'KG', unitSize: 1, minStockLevel: 5 },
@@ -208,7 +269,9 @@ async function main() {
   console.log('\n🎉 Database seeded successfully!');
   console.log('📧 Admin login: admin@jkkm.edu.in / Admin@123');
   console.log('📧 Manager login: manager@jkkm.edu.in / Manager@123');
+  console.log('📧 Storekeeper login: store@jkkm.edu.in / Storekeeper@123');
   console.log('📧 Kitchen login: kitchen@jkkm.edu.in / Staff@123');
+  console.log('📧 Accountant login: accounts@jkkm.edu.in / Accountant@123');
 }
 
 main()

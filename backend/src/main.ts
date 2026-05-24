@@ -6,6 +6,32 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
+import * as dns from 'dns';
+
+// SECURITY/CONNECTIVITY FIX: Override DNS lookup locally to bypass institutional DNS blocks on Neon DB and Upstash
+if (process.env.NODE_ENV !== 'production') {
+  dns.setServers(['8.8.8.8', '8.8.4.4']);
+  const originalLookup = dns.lookup;
+  (dns as any).lookup = function (hostname: string, options: any, callback: any) {
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return originalLookup(hostname, options, callback);
+    }
+    dns.resolve4(hostname, (err, addresses) => {
+      if (err || !addresses || addresses.length === 0) {
+        return originalLookup(hostname, options, callback);
+      }
+      if (options.all) {
+        callback(null, addresses.map((addr) => ({ address: addr, family: 4 })));
+      } else {
+        callback(null, addresses[0], 4);
+      }
+    });
+  };
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: false });

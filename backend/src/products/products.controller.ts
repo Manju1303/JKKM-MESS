@@ -44,21 +44,21 @@ export class ProductsController {
   }
 
   @Post()
-  @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
+  @Roles('Super Admin', 'Mess Manager', 'Storekeeper')
   @ApiOperation({ summary: 'Create a new product' })
   create(@Body() dto: CreateProductDto) {
     return this.productsService.create(dto);
   }
 
   @Post('categories')
-  @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
+  @Roles('Super Admin', 'Mess Manager', 'Storekeeper')
   @ApiOperation({ summary: 'Create a new product category' })
   createCategory(@Body() dto: CreateCategoryDto) {
     return this.productsService.createCategory(dto);
   }
 
   @Put(':id')
-  @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
+  @Roles('Super Admin', 'Mess Manager', 'Storekeeper')
   @ApiOperation({ summary: 'Update product details' })
   update(
     @Param('id', ParseIntPipe) id: number,

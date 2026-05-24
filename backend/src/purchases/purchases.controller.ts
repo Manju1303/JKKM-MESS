@@ -22,7 +22,7 @@ export class PurchasesController {
   }
 
   @Get('pending')
-  @Roles('Super Admin', 'Mess Manager')
+  @Roles('Super Admin', 'Mess Manager', 'Accountant')
   @ApiOperation({ summary: 'Get purchases pending approval' })
   getPending() {
     return this.purchasesService.getPendingApprovals();
@@ -41,7 +41,7 @@ export class PurchasesController {
   }
 
   @Post()
-  @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
+  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant')
   @ApiOperation({ summary: 'Create purchase order (status: PENDING)' })
   create(@Body() dto: CreatePurchaseDto, @Request() req: any) {
     return this.purchasesService.create(dto, req.user.userId);
@@ -49,14 +49,14 @@ export class PurchasesController {
 
 
   @Post(':id/approve')
-  @Roles('Super Admin', 'Mess Manager')
+  @Roles('Super Admin', 'Mess Manager', 'Accountant')
   @ApiOperation({ summary: 'Approve purchase → auto-adds to inventory' })
   approve(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
     return this.purchasesService.approve(id, req.user.userId);
   }
 
   @Post(':id/reject')
-  @Roles('Super Admin', 'Mess Manager')
+  @Roles('Super Admin', 'Mess Manager', 'Accountant')
   @ApiOperation({ summary: 'Reject purchase order' })
   reject(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
     return this.purchasesService.reject(id, req.user.userId);

@@ -37,21 +37,21 @@ export class SuppliersController {
   }
 
   @Post()
-  @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
+  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant')
   @ApiOperation({ summary: 'Create a new supplier' })
   create(@Body() dto: CreateSupplierDto) {
     return this.suppliersService.create(dto);
   }
 
   @Put(':id')
-  @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
+  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant')
   @ApiOperation({ summary: 'Update supplier details' })
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateSupplierDto) {
     return this.suppliersService.update(id, dto);
   }
 
   @Delete(':id')
-  @Roles('Super Admin', 'Mess Manager')
+  @Roles('Super Admin', 'Mess Manager', 'Accountant')
   @ApiOperation({ summary: 'Deactivate supplier' })
   deactivate(@Param('id', ParseIntPipe) id: number) {
     return this.suppliersService.deactivate(id);

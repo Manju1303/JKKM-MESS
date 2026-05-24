@@ -52,7 +52,7 @@ export class InventoryController {
   }
 
   @Post()
-  @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
+  @Roles('Super Admin', 'Mess Manager', 'Storekeeper')
   @ApiOperation({ summary: 'Add stock to inventory (manual entry)' })
   addStock(@Body() dto: CreateInventoryDto) {
     return this.inventoryService.addStock(dto);

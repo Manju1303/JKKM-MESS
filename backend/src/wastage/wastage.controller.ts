@@ -32,7 +32,7 @@ export class WastageController {
   }
 
   @Post()
-  @Roles('Super Admin', 'Mess Manager', 'Store Keeper', 'Kitchen Staff')
+  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Kitchen Staff')
   @ApiOperation({ summary: 'Report wastage' })
   create(@Body() dto: CreateWastageDto) {
     return this.wastageService.create(dto);

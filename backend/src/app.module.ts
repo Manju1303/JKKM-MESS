@@ -10,6 +10,7 @@ import { PurchasesModule } from './purchases/purchases.module';
 import { KitchenModule } from './kitchen/kitchen.module';
 import { ConsumptionModule } from './consumption/consumption.module';
 import { WastageModule } from './wastage/wastage.module';
+import { ReportsModule } from './reports/reports.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { AiModule } from './ai/ai.module';
@@ -39,6 +40,7 @@ import { GatewayModule } from './gateway/gateway.module';
     KitchenModule,
     ConsumptionModule,
     WastageModule,
+    ReportsModule,
     NotificationsModule,
     AttendanceModule,
     AiModule,

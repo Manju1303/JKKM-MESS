@@ -26,7 +26,7 @@ const mockRoles = [
   { id: 2, name: 'Mess Manager', description: 'Mess approvals, menus, and reports' },
   { id: 3, name: 'Storekeeper', description: 'Inventory management & stock intake' },
   { id: 4, name: 'Kitchen Staff', description: 'Kitchen stock issue & daily tracking' },
-  { id: 5, name: 'Accounts Department', description: 'Supplier spend audits & payments' },
+  { id: 5, name: 'Accountant', description: 'Supplier spend audits & payments' },
   { id: 6, name: 'Management Viewer', description: 'Read-only analytics & summaries' },
 ];
 
@@ -72,7 +72,14 @@ export default function UsersPage() {
         usersAPI.getRoles()
       ]);
       if (usersRes.data && usersRes.data.length > 0) setUsers(usersRes.data);
-      if (rolesRes.data && rolesRes.data.length > 0) setRoles(rolesRes.data);
+      if (rolesRes.data && rolesRes.data.length > 0) {
+        setRoles(rolesRes.data);
+        const storekeeperRole = rolesRes.data.find((r: any) => r.name === 'Storekeeper');
+        if (storekeeperRole) {
+          setNewRoleId(storekeeperRole.id);
+          setEditRoleId(storekeeperRole.id);
+        }
+      }
     } catch (e) {
       console.log('Using offline user catalog cache');
     } finally {
@@ -286,7 +293,7 @@ export default function UsersPage() {
                           u.role.name === 'Mess Manager' && 'bg-[hsl(28,95%,15%)] text-[hsl(28,95%,55%)] border-[hsl(28,95%,20%)]',
                           u.role.name === 'Storekeeper' && 'bg-blue-500/10 text-blue-400 border-blue-500/20',
                           u.role.name === 'Kitchen Staff' && 'bg-green-500/10 text-green-400 border-green-500/20',
-                          u.role.name === 'Accounts Department' && 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+                          u.role.name === 'Accountant' && 'bg-purple-500/10 text-purple-400 border-purple-500/20',
                           u.role.name === 'Management Viewer' && 'bg-slate-500/10 text-slate-400 border-slate-500/20'
                         )}>
                           <Shield className="w-3 h-3" />
