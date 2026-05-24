@@ -65,7 +65,7 @@ async function bootstrap() {
     console.log(`📚 API Docs: http://localhost:${port}/api/docs`);
   }
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`\n🚀 JKKM Mess ERP Backend running on port ${port}`);
   // SECURITY: Do not log full DATABASE_URL — it contains credentials
   console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'connected' : 'NOT CONFIGURED'}`);
