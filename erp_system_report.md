@@ -316,7 +316,7 @@ The `/dashboard/ai` page connects to `AiModule` which provides statistical forec
 
 **Backend (Railway)**
 ```env
-DATABASE_URL=postgresql://neondb_owner:...@ep-late-darkness-ao4qhb6o.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+DATABASE_URL=postgresql://neondb_owner:...@ep-late-darkness-ao4qhb6o-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
 UPSTASH_REDIS_REST_URL=https://growing-bee-103523.upstash.io
 UPSTASH_REDIS_REST_TOKEN=<token>
 JWT_SECRET=<your-jwt-secret>
@@ -413,7 +413,7 @@ volumes:
 | **Backend Host** | `jkkm-mess.railway.internal` (Railway cloud) |
 | **API Base URL** | `https://jkkm-mess.railway.internal/api/v1` |
 | **Swagger API Docs** | `https://jkkm-mess.railway.internal/api/docs` |
-| **Database** | Neon PostgreSQL — `ep-late-darkness-ao4qhb6o.c-2.ap-southeast-1.aws.neon.tech` |
+| **Database** | Neon PostgreSQL — `ep-late-darkness-ao4qhb6o-pooler.c-2.ap-southeast-1.aws.neon.tech` |
 | **Redis Cache** | Upstash — `growing-bee-103523.upstash.io:6379` |
 | **Default Admin Email** | `admin@jkkm.edu.in` |
 
