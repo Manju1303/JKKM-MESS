@@ -40,7 +40,9 @@ async function main() {
   const adminPassword = await bcrypt.hash('Admin@123', 12);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@jkkm.edu.in' },
-    update: {},
+    update: {
+      password: adminPassword,
+    },
     create: {
       name: 'Super Admin',
       email: 'admin@jkkm.edu.in',
@@ -55,7 +57,9 @@ async function main() {
   const managerPassword = await bcrypt.hash('Manager@123', 12);
   await prisma.user.upsert({
     where: { email: 'manager@jkkm.edu.in' },
-    update: {},
+    update: {
+      password: managerPassword,
+    },
     create: {
       name: 'Mess Manager',
       email: 'manager@jkkm.edu.in',
@@ -69,7 +73,9 @@ async function main() {
   const staffPassword = await bcrypt.hash('Staff@123', 12);
   await prisma.user.upsert({
     where: { email: 'kitchen@jkkm.edu.in' },
-    update: {},
+    update: {
+      password: staffPassword,
+    },
     create: {
       name: 'Kitchen Staff',
       email: 'kitchen@jkkm.edu.in',
