@@ -43,5 +43,5 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
 
-# Run migrations, seed (only if DB is fresh), then start the app
-CMD npx prisma migrate deploy && node dist/main
+# Run migrations, seed, then start the app
+CMD npx prisma migrate deploy && npx prisma db seed && node dist/main
