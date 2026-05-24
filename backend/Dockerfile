@@ -20,6 +20,9 @@ RUN npx prisma generate
 COPY . .
 RUN npm run build
 
+# Compile the seed script to JS for production (avoids ts-node dependency)
+RUN npx tsc prisma/seed.ts --outDir dist/prisma --module commonjs --target es2021 --skipLibCheck
+
 # ─── Stage 2: Production ──────────────────────────────────────────────────────
 FROM node:20-alpine AS production
 
@@ -44,4 +47,4 @@ COPY --from=builder /app/dist ./dist
 EXPOSE 3000
 
 # Run migrations, seed, then start the app
-CMD npx prisma migrate deploy && npx prisma db seed && node dist/main
+CMD npx prisma migrate deploy && node dist/prisma/seed.js && node dist/main
