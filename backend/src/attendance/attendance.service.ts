@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateAttendanceDto } from './dto/create-attendance.dto';
+import { UpdateAttendanceDto } from './dto/update-attendance.dto';
 
 @Injectable()
 export class AttendanceService {
@@ -14,20 +16,27 @@ export class AttendanceService {
     });
   }
 
-  async create(data: any) {
+  async create(dto: CreateAttendanceDto) {
     return this.prisma.attendance.create({
       data: {
-        date: new Date(data.date),
-        meal: data.meal,
-        count: data.count,
-        hostel: data.hostel,
-        notes: data.notes,
+        date: new Date(dto.date),
+        meal: dto.meal,
+        count: dto.count,
+        hostel: dto.hostel,
+        notes: dto.notes,
       },
     });
   }
 
-  async update(id: number, data: any) {
-    return this.prisma.attendance.update({ where: { id }, data });
+  async update(id: number, dto: UpdateAttendanceDto) {
+    const { date, ...rest } = dto;
+    return this.prisma.attendance.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(date ? { date: new Date(date) } : {}),
+      },
+    });
   }
 
   async getStats() {

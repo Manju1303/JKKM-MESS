@@ -7,6 +7,8 @@ import { ReportsService } from './reports.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { GenerateDailyReportDto } from './dto/generate-daily-report.dto';
+import { GenerateMonthlyReportDto } from './dto/generate-monthly-report.dto';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -27,8 +29,8 @@ export class ReportsController {
   @Roles('Super Admin', 'Mess Manager')
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Generate daily report for a specific date' })
-  generateDaily(@Body() body: { date: string }, @Request() req: any) {
-    return this.reportsService.generateDailyReport(body.date, req.user.userId);
+  generateDaily(@Body() dto: GenerateDailyReportDto, @Request() req: any) {
+    return this.reportsService.generateDailyReport(dto.date, req.user.userId);
   }
 
   @Post('monthly')
@@ -36,10 +38,10 @@ export class ReportsController {
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Generate monthly expense report' })
   generateMonthly(
-    @Body() body: { year: number; month: number },
+    @Body() dto: GenerateMonthlyReportDto,
     @Request() req: any,
   ) {
-    return this.reportsService.generateMonthlyReport(body.year, body.month, req.user.userId);
+    return this.reportsService.generateMonthlyReport(dto.year, dto.month, req.user.userId);
   }
 
   @Post('inventory')

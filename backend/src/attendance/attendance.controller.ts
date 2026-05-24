@@ -2,6 +2,8 @@ import { Controller, Get, Post, Put, Body, Param, ParseIntPipe, Query, UseGuards
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { AttendanceService } from './attendance.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CreateAttendanceDto } from './dto/create-attendance.dto';
+import { UpdateAttendanceDto } from './dto/update-attendance.dto';
 
 @ApiTags('Kitchen')
 @ApiBearerAuth()
@@ -31,13 +33,13 @@ export class AttendanceController {
 
   @Post()
   @ApiOperation({ summary: 'Record meal attendance' })
-  create(@Body() data: any) {
-    return this.attendanceService.create(data);
+  create(@Body() dto: CreateAttendanceDto) {
+    return this.attendanceService.create(dto);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update attendance record' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() data: any) {
-    return this.attendanceService.update(id, data);
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateAttendanceDto) {
+    return this.attendanceService.update(id, dto);
   }
 }

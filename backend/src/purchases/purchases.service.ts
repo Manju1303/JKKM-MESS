@@ -114,10 +114,17 @@ export class PurchasesService {
 
 
   async reject(id: number, userId: number) {
-    return this.prisma.purchase.update({
-      where: { id },
+    const purchase = await this.prisma.purchase.update({
+      where: { id, status: 'PENDING' },
       data: { status: 'REJECTED', approvedBy: userId, approvedAt: new Date() },
-    });
+    }).catch(() => null);
+
+    if (!purchase) {
+      throw new ConflictException(
+        'Purchase order is not in PENDING status or does not exist. Cannot reject.',
+      );
+    }
+    return purchase;
   }
 
   /** Returns monthly expense data for trend charts */

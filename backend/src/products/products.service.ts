@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
 
 @Injectable()
 export class ProductsService {
@@ -62,7 +63,7 @@ export class ProductsService {
     return this.prisma.category.findMany({ orderBy: { name: 'asc' } });
   }
 
-  async createCategory(data: { name: string; type: string; description?: string }) {
-    return this.prisma.category.create({ data });
+  async createCategory(dto: CreateCategoryDto) {
+    return this.prisma.category.create({ data: dto });
   }
 }

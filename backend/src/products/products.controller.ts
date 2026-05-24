@@ -9,6 +9,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
 
 @ApiTags('Products')
 @ApiBearerAuth()
@@ -52,8 +53,8 @@ export class ProductsController {
   @Post('categories')
   @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
   @ApiOperation({ summary: 'Create a new product category' })
-  createCategory(@Body() data: { name: string; type: string; description?: string }) {
-    return this.productsService.createCategory(data);
+  createCategory(@Body() dto: CreateCategoryDto) {
+    return this.productsService.createCategory(dto);
   }
 
   @Put(':id')
