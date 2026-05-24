@@ -19,18 +19,21 @@ export class SuppliersController {
   constructor(private suppliersService: SuppliersService) {}
 
   @Get()
+  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant')
   @ApiOperation({ summary: 'Get all suppliers with order count' })
   findAll() {
     return this.suppliersService.findAll();
   }
 
   @Get(':id')
+  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant')
   @ApiOperation({ summary: 'Get supplier with recent purchase history' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.suppliersService.findById(id);
   }
 
   @Get(':id/stats')
+  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant')
   @ApiOperation({ summary: 'Get supplier spend statistics' })
   getStats(@Param('id', ParseIntPipe) id: number) {
     return this.suppliersService.getStats(id);

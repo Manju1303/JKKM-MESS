@@ -16,6 +16,7 @@ export class PurchasesController {
   constructor(private purchasesService: PurchasesService) {}
 
   @Get()
+  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant')
   @ApiOperation({ summary: 'Get all purchase orders' })
   findAll() {
     return this.purchasesService.findAll();
@@ -29,12 +30,14 @@ export class PurchasesController {
   }
 
   @Get('expenses/monthly')
+  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant')
   @ApiOperation({ summary: 'Monthly expense trend data for charts' })
   getMonthlyExpenses() {
     return this.purchasesService.getMonthlyExpenses();
   }
 
   @Get(':id')
+  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant')
   @ApiOperation({ summary: 'Get purchase order details' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.purchasesService.findById(id);
