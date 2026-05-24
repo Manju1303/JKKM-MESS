@@ -67,7 +67,7 @@ async function bootstrap() {
   // ── WebSocket ─────────────────────────────────────────────────────────────
   app.useWebSocketAdapter(new IoAdapter(app));
 
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 3000;
 
   // ── Swagger (DEVELOPMENT ONLY) ────────────────────────────────────────────
   // Never expose API docs in production — it reveals your entire API surface
