@@ -16,6 +16,9 @@ import { AttendanceModule } from './attendance/attendance.module';
 import { AiModule } from './ai/ai.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { GatewayModule } from './gateway/gateway.module';
+import { MenuModule } from './menu/menu.module';
+import { ComplaintsModule } from './complaints/complaints.module';
+import { LoginActivityModule } from './login-activity/login-activity.module';
 
 @Module({
   imports: [
@@ -45,6 +48,9 @@ import { GatewayModule } from './gateway/gateway.module';
     AttendanceModule,
     AiModule,
     GatewayModule,
+    MenuModule,
+    ComplaintsModule,
+    LoginActivityModule,
   ],
 })
 export class AppModule {}

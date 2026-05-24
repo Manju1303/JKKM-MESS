@@ -17,10 +17,34 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Frontend strict institutional email domain validation
+    if (!form.email.toLowerCase().endsWith('@jkkm.edu.in')) {
+      setError('Access restricted to JKKM institutional accounts only.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await authAPI.login(form);
       setAuth(res.data.user, res.data.access_token);
-      router.push('/dashboard');
+      
+      const userRole = res.data.user.role;
+      if (userRole === 'SUPER_ADMIN') {
+        router.push('/dashboard/users');
+      } else if (userRole === 'STORE_KEEPER') {
+        router.push('/dashboard/inventory');
+      } else if (userRole === 'KITCHEN_STAFF') {
+        router.push('/dashboard/kitchen');
+      } else if (userRole === 'HOSTEL_WARDEN') {
+        router.push('/dashboard/attendance');
+      } else if (userRole === 'STUDENT_VIEWER') {
+        router.push('/dashboard/menu');
+      } else if (userRole === 'ACCOUNTANT') {
+        router.push('/dashboard/purchases');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err: unknown) {
       const apiError = err as { response?: { data?: { message?: string } } };
       setError(apiError?.response?.data?.message || 'Invalid credentials. Please try again.');

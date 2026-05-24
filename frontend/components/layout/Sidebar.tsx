@@ -8,23 +8,26 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Package, ShoppingCart, Truck, ChefHat, BarChart3,
   Users, QrCode, Bell, Settings, LogOut, Boxes, Brain,
-  ChevronLeft, ChevronRight, Building2, Calendar, X
+  ChevronLeft, ChevronRight, Building2, Calendar, X, ClipboardList, ShieldAlert, Utensils
 } from 'lucide-react';
 
 const navItems = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['all'] },
-  { label: 'Inventory', href: '/dashboard/inventory', icon: Boxes, roles: ['all'] },
-  { label: 'Products', href: '/dashboard/products', icon: Package, roles: ['all'] },
-  { label: 'Purchases', href: '/dashboard/purchases', icon: ShoppingCart, roles: ['Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant'] },
-  { label: 'Suppliers', href: '/dashboard/suppliers', icon: Truck, roles: ['Super Admin', 'Mess Manager', 'Accountant'] },
-  { label: 'Kitchen Issues', href: '/dashboard/kitchen', icon: ChefHat, roles: ['all'] },
-  { label: 'Barcode Scanner', href: '/dashboard/barcode', icon: QrCode, roles: ['Super Admin', 'Mess Manager', 'Storekeeper'] },
-  { label: 'Reports', href: '/dashboard/reports', icon: BarChart3, roles: ['all'] },
-  { label: 'Attendance', href: '/dashboard/attendance', icon: Calendar, roles: ['Super Admin', 'Mess Manager'] },
-  { label: 'AI Insights', href: '/dashboard/ai', icon: Brain, roles: ['Super Admin', 'Mess Manager', 'Management Viewer'] },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'KITCHEN_STAFF', 'ACCOUNTANT', 'HOSTEL_WARDEN'] },
+  { label: 'Daily Menu', href: '/dashboard/menu', icon: Utensils, roles: ['all'] },
+  { label: 'Inventory', href: '/dashboard/inventory', icon: Boxes, roles: ['SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'ACCOUNTANT'] },
+  { label: 'Products', href: '/dashboard/products', icon: Package, roles: ['SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'ACCOUNTANT'] },
+  { label: 'Purchases', href: '/dashboard/purchases', icon: ShoppingCart, roles: ['SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'ACCOUNTANT'] },
+  { label: 'Suppliers', href: '/dashboard/suppliers', icon: Truck, roles: ['SUPER_ADMIN', 'MESS_MANAGER', 'ACCOUNTANT'] },
+  { label: 'Kitchen Issues', href: '/dashboard/kitchen', icon: ChefHat, roles: ['SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'KITCHEN_STAFF'] },
+  { label: 'Barcode Scanner', href: '/dashboard/barcode', icon: QrCode, roles: ['SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER'] },
+  { label: 'Complaints', href: '/dashboard/complaints', icon: ClipboardList, roles: ['SUPER_ADMIN', 'HOSTEL_WARDEN', 'STUDENT_VIEWER'] },
+  { label: 'Reports', href: '/dashboard/reports', icon: BarChart3, roles: ['SUPER_ADMIN', 'MESS_MANAGER', 'ACCOUNTANT'] },
+  { label: 'Attendance', href: '/dashboard/attendance', icon: Calendar, roles: ['SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN'] },
+  { label: 'AI Insights', href: '/dashboard/ai', icon: Brain, roles: ['SUPER_ADMIN', 'MESS_MANAGER'] },
   { label: 'Notifications', href: '/dashboard/notifications', icon: Bell, roles: ['all'] },
-  { label: 'Users', href: '/dashboard/users', icon: Users, roles: ['Super Admin'] },
-  { label: 'Settings', href: '/dashboard/settings', icon: Settings, roles: ['Super Admin', 'Mess Manager'] },
+  { label: 'Users', href: '/dashboard/users', icon: Users, roles: ['SUPER_ADMIN'] },
+  { label: 'Audit Logs', href: '/dashboard/audit-logs', icon: ShieldAlert, roles: ['SUPER_ADMIN'] },
+  { label: 'Settings', href: '/dashboard/settings', icon: Settings, roles: ['SUPER_ADMIN', 'MESS_MANAGER'] },
 ];
 
 export default function Sidebar() {

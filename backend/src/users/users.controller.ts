@@ -17,7 +17,7 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get()
-  @Roles('Super Admin', 'Mess Manager')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
   @ApiOperation({ summary: 'Get all active users' })
   findAll() {
     return this.usersService.findAll();
@@ -36,7 +36,7 @@ export class UsersController {
   }
 
   @Put(':id')
-  @Roles('Super Admin')
+  @Roles('SUPER_ADMIN')
   @ApiOperation({ summary: 'Update user details' })
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -46,7 +46,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles('Super Admin')
+  @Roles('SUPER_ADMIN')
   @ApiOperation({ summary: 'Deactivate user (soft delete)' })
   deactivate(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.deactivate(id);

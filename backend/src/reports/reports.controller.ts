@@ -26,7 +26,7 @@ export class ReportsController {
   }
 
   @Post('daily')
-  @Roles('Super Admin', 'Mess Manager', 'Accountant')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'ACCOUNTANT')
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Generate daily report for a specific date' })
   generateDaily(@Body() dto: GenerateDailyReportDto, @Request() req: any) {
@@ -34,7 +34,7 @@ export class ReportsController {
   }
 
   @Post('monthly')
-  @Roles('Super Admin', 'Mess Manager', 'Accountant')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'ACCOUNTANT')
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Generate monthly expense report' })
   generateMonthly(
@@ -45,7 +45,7 @@ export class ReportsController {
   }
 
   @Post('inventory')
-  @Roles('Super Admin', 'Mess Manager', 'Accountant')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'ACCOUNTANT')
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Generate inventory valuation report' })
   generateInventory(@Request() req: any) {

@@ -66,6 +66,16 @@ export class UsersService {
     });
   }
 
+  async updateLockoutState(id: number, failedAttempts: number, lockUntil: Date | null) {
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        failedLoginAttempts: failedAttempts,
+        lockUntil,
+      },
+    });
+  }
+
   async deactivate(id: number) {
     return this.prisma.user.update({
       where: { id },

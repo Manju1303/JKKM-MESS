@@ -44,21 +44,21 @@ export class ProductsController {
   }
 
   @Post()
-  @Roles('Super Admin', 'Mess Manager', 'Storekeeper')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER')
   @ApiOperation({ summary: 'Create a new product' })
   create(@Body() dto: CreateProductDto) {
     return this.productsService.create(dto);
   }
 
   @Post('categories')
-  @Roles('Super Admin', 'Mess Manager', 'Storekeeper')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER')
   @ApiOperation({ summary: 'Create a new product category' })
   createCategory(@Body() dto: CreateCategoryDto) {
     return this.productsService.createCategory(dto);
   }
 
   @Put(':id')
-  @Roles('Super Admin', 'Mess Manager', 'Storekeeper')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER')
   @ApiOperation({ summary: 'Update product details' })
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -68,7 +68,7 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  @Roles('Super Admin', 'Mess Manager')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
   @ApiOperation({ summary: 'Soft-delete product' })
   delete(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.delete(id);

@@ -130,4 +130,22 @@ export const attendanceAPI = {
   update: (id: number, data: unknown) => api.put(`/attendance/${id}`, data),
 };
 
+export const menuAPI = {
+  getAll: (startDate?: string, endDate?: string) =>
+    api.get(`/menu${startDate ? `?startDate=${startDate}&endDate=${endDate}` : ''}`),
+  create: (data: unknown) => api.post('/menu', data),
+  update: (id: number, data: unknown) => api.put(`/menu/${id}`, data),
+  delete: (id: number) => api.delete(`/menu/${id}`),
+};
+
+export const complaintsAPI = {
+  getAll: () => api.get('/complaints'),
+  create: (data: unknown) => api.post('/complaints', data),
+  resolve: (id: number) => api.post(`/complaints/${id}/resolve`),
+};
+
+export const loginActivityAPI = {
+  getAll: (email?: string) => api.get(`/login-activity${email ? `?email=${email}` : ''}`),
+};
+
 export default api;

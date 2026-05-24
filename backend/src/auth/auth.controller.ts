@@ -14,8 +14,10 @@ export class AuthController {
 
   @Post('login')
   @ApiOperation({ summary: 'Login with email and password' })
-  login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  login(@Body() dto: LoginDto, @Request() req: any) {
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown';
+    const userAgent = req.headers['user-agent'] || 'Unknown';
+    return this.authService.login(dto, ip, userAgent);
   }
 
   /** SECURITY: Only authenticated Super Admins can create new users */

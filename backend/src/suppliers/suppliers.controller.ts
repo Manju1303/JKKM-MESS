@@ -19,42 +19,42 @@ export class SuppliersController {
   constructor(private suppliersService: SuppliersService) {}
 
   @Get()
-  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Get all suppliers with order count' })
   findAll() {
     return this.suppliersService.findAll();
   }
 
   @Get(':id')
-  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Get supplier with recent purchase history' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.suppliersService.findById(id);
   }
 
   @Get(':id/stats')
-  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Get supplier spend statistics' })
   getStats(@Param('id', ParseIntPipe) id: number) {
     return this.suppliersService.getStats(id);
   }
 
   @Post()
-  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Create a new supplier' })
   create(@Body() dto: CreateSupplierDto) {
     return this.suppliersService.create(dto);
   }
 
   @Put(':id')
-  @Roles('Super Admin', 'Mess Manager', 'Storekeeper', 'Accountant')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Update supplier details' })
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateSupplierDto) {
     return this.suppliersService.update(id, dto);
   }
 
   @Delete(':id')
-  @Roles('Super Admin', 'Mess Manager', 'Accountant')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Deactivate supplier' })
   deactivate(@Param('id', ParseIntPipe) id: number) {
     return this.suppliersService.deactivate(id);
