@@ -3,27 +3,29 @@ import * as bcrypt from 'bcryptjs';
 import * as dns from 'dns';
 
 // CONNECTIVITY FIX: Override DNS lookup to bypass local DNS blocks on Neon DB
-dns.setServers(['8.8.8.8', '8.8.4.4']);
-const originalLookup = dns.lookup;
-(dns as any).lookup = function (hostname: string, options: any, callback: any) {
-  if (typeof options === 'function') {
-    callback = options;
-    options = {};
-  }
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return originalLookup(hostname, options, callback);
-  }
-  dns.resolve4(hostname, (err, addresses) => {
-    if (err || !addresses || addresses.length === 0) {
+if (process.env.NODE_ENV !== 'production') {
+  dns.setServers(['8.8.8.8', '8.8.4.4']);
+  const originalLookup = dns.lookup;
+  (dns as any).lookup = function (hostname: string, options: any, callback: any) {
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return originalLookup(hostname, options, callback);
     }
-    if (options.all) {
-      callback(null, addresses.map((addr) => ({ address: addr, family: 4 })));
-    } else {
-      callback(null, addresses[0], 4);
-    }
-  });
-};
+    dns.resolve4(hostname, (err, addresses) => {
+      if (err || !addresses || addresses.length === 0) {
+        return originalLookup(hostname, options, callback);
+      }
+      if (options.all) {
+        callback(null, addresses.map((addr) => ({ address: addr, family: 4 })));
+      } else {
+        callback(null, addresses[0], 4);
+      }
+    });
+  };
+}
 
 const prisma = new PrismaClient();
 
