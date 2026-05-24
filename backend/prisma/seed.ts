@@ -194,13 +194,14 @@ async function main() {
     },
   ];
   for (const supplier of suppliers) {
-    await prisma.supplier.upsert({
-      where: { id: undefined as any },
-      update: {},
-      create: supplier,
-    }).catch(() => {
-      // Supplier might already exist by name; skip
+    const existing = await prisma.supplier.findFirst({
+      where: { name: supplier.name }
     });
+    if (!existing) {
+      await prisma.supplier.create({
+        data: supplier
+      });
+    }
   }
   console.log('✅ Suppliers seeded');
 
