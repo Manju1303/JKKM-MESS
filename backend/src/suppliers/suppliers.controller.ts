@@ -6,6 +6,10 @@ import { SuppliersService } from './suppliers.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CreateSupplierDto } from './dto/create-supplier.dto';
+import { PartialType } from '@nestjs/swagger';
+
+class UpdateSupplierDto extends PartialType(CreateSupplierDto) {}
 
 @ApiTags('Suppliers')
 @ApiBearerAuth()
@@ -35,15 +39,15 @@ export class SuppliersController {
   @Post()
   @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
   @ApiOperation({ summary: 'Create a new supplier' })
-  create(@Body() data: any) {
-    return this.suppliersService.create(data);
+  create(@Body() dto: CreateSupplierDto) {
+    return this.suppliersService.create(dto);
   }
 
   @Put(':id')
   @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
   @ApiOperation({ summary: 'Update supplier details' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() data: any) {
-    return this.suppliersService.update(id, data);
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateSupplierDto) {
+    return this.suppliersService.update(id, dto);
   }
 
   @Delete(':id')
@@ -53,3 +57,4 @@ export class SuppliersController {
     return this.suppliersService.deactivate(id);
   }
 }
+

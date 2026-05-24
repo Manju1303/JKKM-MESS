@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { AppGateway } from '../gateway/app.gateway';
@@ -80,15 +80,24 @@ export class PurchasesService {
 
   /**
    * Approve a purchase → automatically adds each line item to inventory.
-   * This is the key business automation: one approval triggers stock updates.
+   * SECURITY FIX: Uses where: { id, status: 'PENDING' } to prevent double-approval
+   * race conditions that would add duplicate stock entries.
    */
   async approve(id: number, userId: number) {
     return this.prisma.$transaction(async (tx) => {
+      // Only update if still PENDING — prevents double-approval / double stock injection
       const purchase = await tx.purchase.update({
-        where: { id },
+        where: { id, status: 'PENDING' },
         data: { status: 'APPROVED', approvedBy: userId, approvedAt: new Date() },
         include: { items: { include: { product: true } } },
-      });
+      }).catch(() => null);
+
+      if (!purchase) {
+        throw new ConflictException(
+          'Purchase order is not in PENDING status or does not exist. Cannot approve.',
+        );
+      }
+
       for (const item of purchase.items) {
         await this.inventoryService.addStock({
           productId: item.productId,
@@ -102,6 +111,7 @@ export class PurchasesService {
       return purchase;
     });
   }
+
 
   async reject(id: number, userId: number) {
     return this.prisma.purchase.update({

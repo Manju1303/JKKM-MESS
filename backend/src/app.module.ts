@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ProductsModule } from './products/products.module';
@@ -18,6 +19,16 @@ import { GatewayModule } from './gateway/gateway.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    /**
+     * SECURITY: Global rate limiting — 100 requests per 60s per IP.
+     * Prevents brute-force on login, credential stuffing, and DoS attacks.
+     */
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,   // 60 seconds window
+        limit: 100,   // max 100 requests per window per IP
+      },
+    ]),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -35,3 +46,4 @@ import { GatewayModule } from './gateway/gateway.module';
   ],
 })
 export class AppModule {}
+

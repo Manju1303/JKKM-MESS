@@ -2,18 +2,22 @@ import { Controller, Get, Post, Body, Query, Request, UseGuards } from '@nestjs/
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { KitchenService } from './kitchen.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CreateKitchenIssueDto } from './dto/create-kitchen-issue.dto';
 
 @ApiTags('Kitchen')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('kitchen')
 export class KitchenController {
   constructor(private kitchenService: KitchenService) {}
 
   @Post('issue')
+  @Roles('Super Admin', 'Mess Manager', 'Kitchen Staff', 'Store Keeper')
   @ApiOperation({ summary: 'Issue stock from store to kitchen (auto-deducts inventory)' })
-  issueStock(@Body() data: any, @Request() req: any) {
-    return this.kitchenService.issueStock(data, req.user.userId);
+  issueStock(@Body() dto: CreateKitchenIssueDto, @Request() req: any) {
+    return this.kitchenService.issueStock(dto, req.user.userId);
   }
 
   @Get('today')

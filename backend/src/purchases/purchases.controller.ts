@@ -6,6 +6,7 @@ import { PurchasesService } from './purchases.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CreatePurchaseDto } from './dto/create-purchase.dto';
 
 @ApiTags('Purchases')
 @ApiBearerAuth()
@@ -40,10 +41,12 @@ export class PurchasesController {
   }
 
   @Post()
+  @Roles('Super Admin', 'Mess Manager', 'Store Keeper')
   @ApiOperation({ summary: 'Create purchase order (status: PENDING)' })
-  create(@Body() data: any, @Request() req: any) {
-    return this.purchasesService.create(data, req.user.userId);
+  create(@Body() dto: CreatePurchaseDto, @Request() req: any) {
+    return this.purchasesService.create(dto, req.user.userId);
   }
+
 
   @Post(':id/approve')
   @Roles('Super Admin', 'Mess Manager')

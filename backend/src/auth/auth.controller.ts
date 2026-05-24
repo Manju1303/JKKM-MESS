@@ -2,6 +2,8 @@ import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { Roles } from './decorators/roles.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -16,8 +18,12 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  /** SECURITY: Only authenticated Super Admins can create new users */
   @Post('register')
-  @ApiOperation({ summary: 'Register a new user (Super Admin only)' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Super Admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Register a new user — Super Admin only' })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }

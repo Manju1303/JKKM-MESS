@@ -4,6 +4,7 @@ import { WastageService } from './wastage.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CreateWastageDto } from './dto/create-wastage.dto';
 
 @ApiTags('Kitchen')
 @ApiBearerAuth()
@@ -33,7 +34,8 @@ export class WastageController {
   @Post()
   @Roles('Super Admin', 'Mess Manager', 'Store Keeper', 'Kitchen Staff')
   @ApiOperation({ summary: 'Report wastage' })
-  create(@Body() data: any) {
-    return this.wastageService.create(data);
+  create(@Body() dto: CreateWastageDto) {
+    return this.wastageService.create(dto);
   }
 }
+

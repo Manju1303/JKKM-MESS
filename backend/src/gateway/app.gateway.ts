@@ -45,7 +45,8 @@ export class AppGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         return;
       }
       const token = authHeader.replace('Bearer ', '');
-      const payload = this.jwtService.verify(token);
+      // SECURITY: Pin to HS256 — prevents 'none' algorithm substitution attacks
+      const payload = this.jwtService.verify(token, { algorithms: ['HS256'] });
       client.data = { user: payload };
       this.connectedClients.set(client.id, client);
       this.logger.log(`Client connected: ${client.id} (User: ${payload.email}) | Total: ${this.connectedClients.size}`);

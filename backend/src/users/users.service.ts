@@ -8,11 +8,23 @@ export class UsersService {
 
   async findAll() {
     return this.prisma.user.findMany({
-      include: { role: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        roleId: true,
+        isActive: true,
+        lastLogin: true,
+        createdAt: true,
+        updatedAt: true,
+        role: true,
+      },
       where: { isActive: true },
       orderBy: { createdAt: 'desc' },
     });
   }
+
 
   async findById(id: number) {
     const user = await this.prisma.user.findUnique({
