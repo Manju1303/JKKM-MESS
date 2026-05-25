@@ -2,36 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { IoAdapter } from '@nestjs/platform-socket.io';
-import { ThrottlerGuard } from '@nestjs/throttler';
-import { Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
-import * as dns from 'dns';
+import * as express from 'express';
+import * as path from 'path';
 
-// SECURITY/CONNECTIVITY FIX: Override DNS lookup locally to bypass institutional DNS blocks on Neon DB and Upstash
-if (process.env.NODE_ENV !== 'production') {
-  dns.setServers(['8.8.8.8', '8.8.4.4']);
-  const originalLookup = dns.lookup;
-  (dns as any).lookup = function (hostname: string, options: any, callback: any) {
-    if (typeof options === 'function') {
-      callback = options;
-      options = {};
-    }
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return originalLookup(hostname, options, callback);
-    }
-    dns.resolve4(hostname, (err, addresses) => {
-      if (err || !addresses || addresses.length === 0) {
-        return originalLookup(hostname, options, callback);
-      }
-      if (options.all) {
-        callback(null, addresses.map((addr) => ({ address: addr, family: 4 })));
-      } else {
-        callback(null, addresses[0], 4);
-      }
-    });
-  };
-}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: false });
@@ -48,8 +23,6 @@ async function bootstrap() {
   });
 
   // ── Serve static reports directory ────────────────────────────────────────
-  const express = require('express');
-  const path = require('path');
   app.use('/reports', express.static(path.join(process.cwd(), 'reports')));
 
   // ── Global prefix ─────────────────────────────────────────────────────────
@@ -67,7 +40,8 @@ async function bootstrap() {
   // ── WebSocket ─────────────────────────────────────────────────────────────
   app.useWebSocketAdapter(new IoAdapter(app));
 
-  const port = process.env.NODE_ENV === 'production' ? 3000 : (process.env.PORT || 3001);
+  // Always respect PORT env var — Railway injects PORT and routes traffic to it
+  const port = parseInt(process.env.PORT || '') || 3001;
 
   // ── Swagger (DEVELOPMENT ONLY) ────────────────────────────────────────────
   // Never expose API docs in production — it reveals your entire API surface

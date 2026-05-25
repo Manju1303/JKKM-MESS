@@ -36,14 +36,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       }),
     });
     const adapter = new PrismaPg(pool);
-    super({
-      adapter,
-      datasources: {
-        db: {
-          url: connectionString,
-        },
-      },
-    });
+    // NOTE: When using a driver adapter, datasources config is ignored —
+    // the connection is fully controlled by the Pool adapter above.
+    super({ adapter });
   }
 
   async onModuleInit() {

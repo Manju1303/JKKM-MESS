@@ -44,7 +44,7 @@ RUN npx prisma generate
 # Copy compiled output from builder
 COPY --from=builder /app/dist ./dist
 
-EXPOSE 3000
+EXPOSE 3001
 
-# Run migrations, seed, then start the app
+# Run migrations, seed (idempotent), then start the app
 CMD npx prisma migrate deploy && node dist/prisma/seed.js && node dist/src/main
