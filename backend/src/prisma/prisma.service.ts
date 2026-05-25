@@ -7,10 +7,25 @@ import { PrismaPg } from '@prisma/adapter-pg';
  * PrismaService wraps PrismaClient and manages DB lifecycle
  * with NestJS module hooks.
  */
+function sanitizeDatabaseUrl(url: string | undefined): string | undefined {
+  if (!url) return url;
+  try {
+    const parsedUrl = new URL(url);
+    parsedUrl.searchParams.delete('channel_binding');
+    if (parsedUrl.hostname.includes('-pooler') && !parsedUrl.searchParams.has('pgbouncer')) {
+      parsedUrl.searchParams.set('pgbouncer', 'true');
+    }
+    return parsedUrl.toString();
+  } catch (err) {
+    return url;
+  }
+}
+
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor() {
-    const connectionString = process.env.DATABASE_URL;
+    const rawConnectionString = process.env.DATABASE_URL;
+    const connectionString = sanitizeDatabaseUrl(rawConnectionString);
     const useSsl = connectionString?.includes('sslmode=') || process.env.NODE_ENV === 'production';
     const pool = new Pool({
       connectionString,
@@ -21,7 +36,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       }),
     });
     const adapter = new PrismaPg(pool);
-    super({ adapter });
+    super({
+      adapter,
+      datasources: {
+        db: {
+          url: connectionString,
+        },
+      },
+    });
   }
 
   async onModuleInit() {

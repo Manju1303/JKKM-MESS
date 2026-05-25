@@ -27,7 +27,27 @@ if (process.env.NODE_ENV !== 'production') {
   };
 }
 
-const prisma = new PrismaClient();
+function sanitizeDatabaseUrl(url: string | undefined): string | undefined {
+  if (!url) return url;
+  try {
+    const parsedUrl = new URL(url);
+    parsedUrl.searchParams.delete('channel_binding');
+    if (parsedUrl.hostname.includes('-pooler') && !parsedUrl.searchParams.has('pgbouncer')) {
+      parsedUrl.searchParams.set('pgbouncer', 'true');
+    }
+    return parsedUrl.toString();
+  } catch (err) {
+    return url;
+  }
+}
+
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: sanitizeDatabaseUrl(process.env.DATABASE_URL),
+    },
+  },
+});
 
 async function main() {
   console.log('🌱 Starting database seed...');
