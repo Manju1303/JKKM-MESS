@@ -84,7 +84,7 @@ export class ReportsService {
     this.applyPremiumStyling(wastageSheet);
 
     // Generate buffer in-memory — no disk writes
-    const buffer = await workbook.xlsx.writeBuffer() as Buffer;
+    const buffer = await workbook.xlsx.writeBuffer() as unknown as Buffer;
     const filename = `daily-report-${date}.xlsx`;
 
     // Persist metadata record in DB (fileUrl is null — file is generated on-demand)
@@ -141,7 +141,7 @@ export class ReportsService {
     this.applyPremiumStyling(sheet);
     this.applyTotalRowStyling(sheet, 6);
 
-    const buffer = await workbook.xlsx.writeBuffer() as Buffer;
+    const buffer = await workbook.xlsx.writeBuffer() as unknown as Buffer;
     const filename = `monthly-report-${year}-${String(month).padStart(2, '0')}.xlsx`;
 
     const report = await this.prisma.report.create({
@@ -199,7 +199,7 @@ export class ReportsService {
     this.applyPremiumStyling(sheet);
     this.applyTotalRowStyling(sheet, 7);
 
-    const buffer = await workbook.xlsx.writeBuffer() as Buffer;
+    const buffer = await workbook.xlsx.writeBuffer() as unknown as Buffer;
     const filename = `inventory-report-${new Date().toISOString().split('T')[0]}.xlsx`;
 
     const report = await this.prisma.report.create({
