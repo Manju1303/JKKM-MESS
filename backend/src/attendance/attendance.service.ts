@@ -67,4 +67,16 @@ export class AttendanceService {
     });
     return records;
   }
+
+  /** Returns today's total student headcount — used by AI forecasting */
+  async getTodayHeadcount(): Promise<number> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const records = await this.prisma.attendance.findMany({
+      where: { date: { gte: today, lt: tomorrow } },
+    });
+    return records.reduce((sum, r) => sum + r.count, 0);
+  }
 }

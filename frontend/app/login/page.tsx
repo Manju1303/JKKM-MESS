@@ -46,8 +46,16 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
     } catch (err: unknown) {
-      const apiError = err as { response?: { data?: { message?: string } } };
-      setError(apiError?.response?.data?.message || 'Invalid credentials. Please try again.');
+      const apiError = err as { response?: { data?: { message?: string } }; request?: unknown; message?: string };
+      if (apiError?.response?.data?.message) {
+        // Server responded with a specific error (wrong password, locked account, etc.)
+        setError(apiError.response.data.message);
+      } else if (apiError?.request) {
+        // Request was made but no response received — server offline or CORS
+        setError('Cannot reach the server. Please check your connection or try again later.');
+      } else {
+        setError(apiError?.message || 'An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

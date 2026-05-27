@@ -1,24 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as ExcelJS from 'exceljs';
-import * as path from 'path';
-import * as fs from 'fs';
 
+/**
+ * ReportsService generates Excel reports entirely in-memory using ExcelJS buffers.
+ * This avoids writing to Railway's ephemeral filesystem (files lost on redeploy).
+ * Each generate* method returns { buffer, filename, report } — the controller
+ * streams the buffer directly to the HTTP response using res.end(buffer).
+ */
 @Injectable()
 export class ReportsService {
   constructor(private prisma: PrismaService) {}
-
-  private get reportsDir() {
-    const dir = path.join(process.cwd(), 'reports');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    return dir;
-  }
 
   async getAll() {
     return this.prisma.report.findMany({ orderBy: { createdAt: 'desc' } });
   }
 
-  /** Generate daily consumption + purchase report as Excel with Premium Styling */
+  /** Generate daily consumption + purchase + wastage report as in-memory Excel buffer */
   async generateDailyReport(date: string, userId: number) {
     const targetDate = new Date(date);
     targetDate.setHours(0, 0, 0, 0);
@@ -44,7 +42,7 @@ export class ReportsService {
     workbook.creator = 'JKKM Mess ERP';
     workbook.created = new Date();
 
-    // Issues sheet
+    // Kitchen Issues sheet
     const issuesSheet = workbook.addWorksheet('Kitchen Issues');
     issuesSheet.columns = [
       { header: 'Product Name', key: 'product' },
@@ -85,26 +83,27 @@ export class ReportsService {
     );
     this.applyPremiumStyling(wastageSheet);
 
+    // Generate buffer in-memory — no disk writes
+    const buffer = await workbook.xlsx.writeBuffer() as Buffer;
     const filename = `daily-report-${date}.xlsx`;
-    const filepath = path.join(this.reportsDir, filename);
-    await workbook.xlsx.writeFile(filepath);
 
-    // Save report record
+    // Persist metadata record in DB (fileUrl is null — file is generated on-demand)
     const report = await this.prisma.report.create({
       data: {
         type: 'DAILY',
         title: `Daily Report - ${date}`,
         dateFrom: targetDate,
         dateTo: nextDay,
-        fileUrl: `/api/v1/reports/download/${filename}`,
+        fileUrl: null, // In-memory generation — no persistent URL
         format: 'EXCEL',
         generatedBy: userId,
       },
     });
-    return { ...report, filepath };
+
+    return { buffer, filename, report };
   }
 
-  /** Monthly expense summary report with Premium Styling */
+  /** Monthly expense summary report — in-memory buffer */
   async generateMonthlyReport(year: number, month: number, userId: number) {
     const dateFrom = new Date(year, month - 1, 1);
     const dateTo = new Date(year, month, 0, 23, 59, 59);
@@ -134,32 +133,16 @@ export class ReportsService {
         net: p.netAmount,
       }),
     );
-    const totalRow = sheet.addRow({
+    sheet.addRow({
       po: 'TOTAL APPROVED SPEND',
       net: purchases.reduce((s, p) => s + p.netAmount, 0),
     });
 
     this.applyPremiumStyling(sheet);
+    this.applyTotalRowStyling(sheet, 6);
 
-    // Apply special styling to total row
-    const lastRowIndex = sheet.rowCount;
-    const finalRow = sheet.getRow(lastRowIndex);
-    finalRow.height = 22;
-    finalRow.eachCell((cell, colNum) => {
-      cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: '1F497D' } };
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'EBF1F5' },
-      };
-      if (colNum === 6) {
-        cell.alignment = { horizontal: 'right', vertical: 'middle' };
-      }
-    });
-
-    const filename = `monthly-report-${year}-${month}.xlsx`;
-    const filepath = path.join(this.reportsDir, filename);
-    await workbook.xlsx.writeFile(filepath);
+    const buffer = await workbook.xlsx.writeBuffer() as Buffer;
+    const filename = `monthly-report-${year}-${String(month).padStart(2, '0')}.xlsx`;
 
     const report = await this.prisma.report.create({
       data: {
@@ -167,15 +150,16 @@ export class ReportsService {
         title: `Monthly Report - ${year}/${month}`,
         dateFrom,
         dateTo,
-        fileUrl: `/api/v1/reports/download/${filename}`,
+        fileUrl: null,
         format: 'EXCEL',
         generatedBy: userId,
       },
     });
-    return { ...report, filepath };
+
+    return { buffer, filename, report };
   }
 
-  /** Inventory valuation report with Premium Styling */
+  /** Inventory valuation report — in-memory buffer */
   async generateInventoryReport(userId: number) {
     const inventory = await this.prisma.inventory.findMany({
       include: { product: { include: { category: true } } },
@@ -213,26 +197,10 @@ export class ReportsService {
     });
 
     this.applyPremiumStyling(sheet);
+    this.applyTotalRowStyling(sheet, 7);
 
-    // Apply special styling to total valuation row
-    const lastRowIndex = sheet.rowCount;
-    const finalRow = sheet.getRow(lastRowIndex);
-    finalRow.height = 22;
-    finalRow.eachCell((cell, colNum) => {
-      cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: '1F497D' } };
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'EBF1F5' },
-      };
-      if (colNum === 7) {
-        cell.alignment = { horizontal: 'right', vertical: 'middle' };
-      }
-    });
-
-    const filename = `inventory-report-${Date.now()}.xlsx`;
-    const filepath = path.join(this.reportsDir, filename);
-    await workbook.xlsx.writeFile(filepath);
+    const buffer = await workbook.xlsx.writeBuffer() as Buffer;
+    const filename = `inventory-report-${new Date().toISOString().split('T')[0]}.xlsx`;
 
     const report = await this.prisma.report.create({
       data: {
@@ -240,39 +208,50 @@ export class ReportsService {
         title: 'Inventory Valuation Report',
         dateFrom: new Date(),
         dateTo: new Date(),
-        fileUrl: `/api/v1/reports/download/${filename}`,
+        fileUrl: null,
         format: 'EXCEL',
         generatedBy: userId,
       },
     });
-    return { ...report, filepath };
+
+    return { buffer, filename, report };
   }
 
-  /** Helper to format sheets with professional look-and-feel */
+  // ── Private Styling Helpers ──────────────────────────────────────────────────
+
+  /** Apply total row accent styling to the last row of a sheet */
+  private applyTotalRowStyling(sheet: ExcelJS.Worksheet, netAmountColNum: number) {
+    const lastRowIndex = sheet.rowCount;
+    const finalRow = sheet.getRow(lastRowIndex);
+    finalRow.height = 22;
+    finalRow.eachCell((cell, colNum) => {
+      cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: '1F497D' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'EBF1F5' } };
+      if (colNum === netAmountColNum) {
+        cell.alignment = { horizontal: 'right', vertical: 'middle' };
+      }
+    });
+  }
+
+  /** Apply professional premium look-and-feel to any worksheet */
   private applyPremiumStyling(sheet: ExcelJS.Worksheet) {
-    // 1. Set column widths automatically
+    // Auto-size columns
     sheet.columns.forEach((column) => {
       let maxLen = column.header ? String(column.header).length : 10;
       column.eachCell?.((cell, rowNumber) => {
-        if (rowNumber === 1) return; // skip header
+        if (rowNumber === 1) return;
         const valStr = cell.value !== null && cell.value !== undefined ? String(cell.value) : '';
-        if (valStr.length > maxLen) {
-          maxLen = valStr.length;
-        }
+        if (valStr.length > maxLen) maxLen = valStr.length;
       });
-      column.width = Math.min(Math.max(maxLen + 4, 12), 45); // cap at 45 to prevent extreme widths
+      column.width = Math.min(Math.max(maxLen + 4, 12), 45);
     });
 
-    // 2. Format header row
+    // Header row styling
     const headerRow = sheet.getRow(1);
     headerRow.height = 28;
     headerRow.eachCell((cell) => {
       cell.font = { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FFFFFF' } };
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: '1F497D' }, // Slate Navy Blue Accent
-      };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1F497D' } };
       cell.alignment = { vertical: 'middle', horizontal: 'center' };
       cell.border = {
         top: { style: 'thin', color: { argb: '10253F' } },
@@ -282,16 +261,12 @@ export class ReportsService {
       };
     });
 
-    // 3. Format data rows
+    // Data rows — zebra striping
     sheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // skip header
-      // Skip the last total row styling since we custom style it in parent callers
-      if (rowNumber === sheet.rowCount && row.getCell(1).value?.toString().includes('TOTAL')) {
-        return;
-      }
+      if (rowNumber === 1) return;
+      if (rowNumber === sheet.rowCount && row.getCell(1).value?.toString().includes('TOTAL')) return;
       row.height = 20;
       const isEven = rowNumber % 2 === 0;
-
       row.eachCell((cell) => {
         cell.font = { name: 'Segoe UI', size: 10 };
         cell.alignment = { vertical: 'middle', horizontal: 'left' };
@@ -301,17 +276,9 @@ export class ReportsService {
           left: { style: 'thin', color: { argb: 'E0E0E0' } },
           right: { style: 'thin', color: { argb: 'E0E0E0' } },
         };
-
-        // Zebra striping
         if (isEven) {
-          cell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'F9FAFC' },
-          };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F9FAFC' } };
         }
-
-        // Align numbers right and format decimals
         if (typeof cell.value === 'number') {
           cell.alignment = { vertical: 'middle', horizontal: 'right' };
           cell.numFmt = '#,##0.00';

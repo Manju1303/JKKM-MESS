@@ -2,6 +2,7 @@ import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { AppGateway } from '../gateway/app.gateway';
+import { EmailService } from '../notifications/email.service';
 
 @Injectable()
 export class PurchasesService {
@@ -9,6 +10,7 @@ export class PurchasesService {
     private prisma: PrismaService,
     private inventoryService: InventoryService,
     private appGateway: AppGateway,
+    private emailService: EmailService,
   ) {}
 
   async findAll() {
@@ -63,7 +65,7 @@ export class PurchasesService {
       include: { items: true, supplier: true },
     });
 
-    // Notify managers about new purchase order
+    // Notify managers about new purchase order (WebSocket + Email)
     try {
       this.appGateway.emitNewPurchase({
         purchaseId: purchase.id,
@@ -74,6 +76,14 @@ export class PurchasesService {
     } catch (err) {
       console.error('Failed to broadcast new purchase alert:', err.message);
     }
+
+    // Non-blocking email alert to admin
+    const supplierName = (purchase as any).supplier?.name || `Supplier #${purchase.supplierId}`;
+    this.emailService.sendNewPurchaseAlert(
+      purchase.purchaseNumber,
+      supplierName,
+      purchase.netAmount,
+    ).catch(() => {});
 
     return purchase;
   }

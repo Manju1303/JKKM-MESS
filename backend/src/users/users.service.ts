@@ -6,7 +6,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(includeInactive = false) {
     return this.prisma.user.findMany({
       select: {
         id: true,
@@ -20,7 +20,7 @@ export class UsersService {
         updatedAt: true,
         role: true,
       },
-      where: { isActive: true },
+      where: includeInactive ? {} : { isActive: true },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -80,6 +80,14 @@ export class UsersService {
     return this.prisma.user.update({
       where: { id },
       data: { isActive: false },
+    });
+  }
+
+  async reactivate(id: number) {
+    return this.prisma.user.update({
+      where: { id },
+      data: { isActive: true, failedLoginAttempts: 0, lockUntil: null },
+      include: { role: true },
     });
   }
 

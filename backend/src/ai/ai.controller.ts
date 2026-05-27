@@ -1,6 +1,7 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { AiService } from './ai.service';
+import { AttendanceService } from '../attendance/attendance.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Reports')
@@ -8,7 +9,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @UseGuards(JwtAuthGuard)
 @Controller('ai')
 export class AiController {
-  constructor(private aiService: AiService) {}
+  constructor(
+    private aiService: AiService,
+    private attendanceService: AttendanceService,
+  ) {}
 
   @Get('insights')
   @ApiOperation({ summary: 'Get AI-powered insights summary for dashboard' })
@@ -41,11 +45,15 @@ export class AiController {
   }
 
   @Get('forecast-by-attendance')
-  @ApiOperation({ summary: 'Get predicted ingredient requirement based on student headcount' })
-  @ApiQuery({ name: 'headcount', required: true, type: Number })
-  getAttendanceForecast(@Query('headcount') headcount: string) {
-    const parsedHeadcount = parseInt(headcount) || 500;
-    return this.aiService.getAttendanceBasedForecasting(parsedHeadcount);
+  @ApiOperation({ summary: 'Get predicted ingredient requirement. If headcount omitted, auto-reads from today\'s attendance.' })
+  @ApiQuery({ name: 'headcount', required: false, type: Number, description: 'Override student headcount (defaults to today\'s attendance total)' })
+  async getAttendanceForecast(@Query('headcount') headcount?: string) {
+    let count = headcount ? parseInt(headcount) : 0;
+    if (!count) {
+      count = await this.attendanceService.getTodayHeadcount();
+      if (!count) count = 800; // sensible default if no attendance logged yet
+    }
+    return this.aiService.getAttendanceBasedForecasting(count);
   }
 
   @Get('stock-runout')

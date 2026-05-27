@@ -47,4 +47,4 @@ COPY --from=builder /app/dist ./dist
 EXPOSE 3001
 
 # Run migrations, seed (idempotent), then start the app
-CMD npx prisma migrate deploy && node dist/prisma/seed.js && node dist/src/main
+CMD npx prisma migrate deploy && node dist/prisma/seed.js; node dist/src/main

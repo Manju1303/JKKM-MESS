@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { AppGateway } from '../gateway/app.gateway';
+import { EmailService } from '../notifications/email.service';
 
 @Injectable()
 export class InventoryService {
   constructor(
     private prisma: PrismaService,
     private appGateway: AppGateway,
+    private emailService: EmailService,
   ) {}
 
   async findAll() {
@@ -166,6 +168,13 @@ export class InventoryService {
             currentQty,
             minLevel: product.minStockLevel,
           });
+          // Non-blocking email alert
+          this.emailService.sendLowStockAlert(
+            product.name,
+            currentQty,
+            product.minStockLevel,
+            product.unit,
+          ).catch(() => {});
         }
       }
     } catch (err) {

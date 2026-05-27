@@ -18,7 +18,18 @@ import { JwtService } from '@nestjs/jwt';
  */
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin: string, callback: Function) => {
+      const allowed = [
+        process.env.FRONTEND_URL || 'http://localhost:3000',
+        'http://localhost:3000',
+        'https://jkkm-mess.vercel.app',
+      ];
+      if (!origin || origin.endsWith('.vercel.app') || allowed.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`WS CORS: origin ${origin} not allowed`));
+      }
+    },
     credentials: true,
   },
   namespace: '/',
@@ -71,8 +82,8 @@ export class AppGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
       client.disconnect();
       return { event: 'error', message: 'Unauthorized' };
     }
-    // Restrict 'managers' room to 'Super Admin' or 'Mess Manager'
-    if (room === 'managers' && !['Super Admin', 'Mess Manager'].includes(user.role)) {
+    // Restrict 'managers' room to SUPER_ADMIN or MESS_MANAGER (role.name from JWT)
+    if (room === 'managers' && !['SUPER_ADMIN', 'MESS_MANAGER'].includes(user.role)) {
       this.logger.warn(`User ${user.email} with role ${user.role} unauthorized to join room ${room}`);
       return { event: 'error', message: 'Unauthorized' };
     }

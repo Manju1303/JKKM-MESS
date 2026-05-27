@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Put, Delete, Body, Param,
+  Controller, Get, Put, Post, Delete, Body, Param, Query,
   ParseIntPipe, UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
@@ -18,9 +18,9 @@ export class UsersController {
 
   @Get()
   @Roles('SUPER_ADMIN', 'MESS_MANAGER')
-  @ApiOperation({ summary: 'Get all active users' })
-  findAll() {
-    return this.usersService.findAll();
+  @ApiOperation({ summary: 'Get all users. Pass ?includeInactive=true to also show deactivated accounts.' })
+  findAll(@Query('includeInactive') includeInactive?: string) {
+    return this.usersService.findAll(includeInactive === 'true');
   }
 
   @Get('roles')
@@ -50,5 +50,12 @@ export class UsersController {
   @ApiOperation({ summary: 'Deactivate user (soft delete)' })
   deactivate(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.deactivate(id);
+  }
+
+  @Post(':id/reactivate')
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Reactivate a deactivated user account' })
+  reactivate(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.reactivate(id);
   }
 }

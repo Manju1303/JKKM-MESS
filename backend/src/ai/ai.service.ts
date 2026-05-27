@@ -94,20 +94,34 @@ export class AiService {
         return this.getMockReorders();
       }
 
-      const lowStock = inventory.filter((i) => i.quantity <= i.product.minStockLevel);
+      // Aggregate quantities by product (a product may have multiple batch rows)
+      const productTotals = new Map<number, { product: typeof inventory[0]['product']; totalQty: number }>();
+      inventory.forEach((i) => {
+        const existing = productTotals.get(i.productId);
+        if (existing) {
+          existing.totalQty += i.quantity;
+        } else {
+          productTotals.set(i.productId, { product: i.product, totalQty: i.quantity });
+        }
+      });
+
       const predictions = await this.predictStockRequirement();
       const predMap = new Map(predictions.map((p) => [p.productId, p]));
 
-      return lowStock.map((inv) => {
-        const pred = predMap.get(inv.productId);
+      const lowStock = Array.from(productTotals.values()).filter(
+        ({ product, totalQty }) => totalQty <= product.minStockLevel,
+      );
+
+      return lowStock.map(({ product, totalQty }) => {
+        const pred = predMap.get(product.id);
         return {
-          productId: inv.productId,
-          productName: inv.product.name,
-          currentStock: inv.quantity,
-          minRequired: inv.product.minStockLevel,
-          unit: inv.product.unit,
-          suggestedOrderQty: pred?.recommendedOrderQty || inv.product.minStockLevel * 2,
-          urgency: inv.quantity === 0 ? 'CRITICAL' : inv.quantity < inv.product.minStockLevel / 2 ? 'HIGH' : 'MEDIUM',
+          productId: product.id,
+          productName: product.name,
+          currentStock: totalQty,
+          minRequired: product.minStockLevel,
+          unit: product.unit,
+          suggestedOrderQty: pred?.recommendedOrderQty || product.minStockLevel * 2,
+          urgency: totalQty === 0 ? 'CRITICAL' : totalQty < product.minStockLevel / 2 ? 'HIGH' : 'MEDIUM',
         };
       });
     } catch (e) {
