@@ -29,15 +29,16 @@ if (process.env.NODE_ENV !== 'production') {
 
 function sanitizeDatabaseUrl(url: string | undefined): string | undefined {
   if (!url) return url;
+  const cleaned = url.trim().replace(/^["']|["']$/g, '');
   try {
-    const parsedUrl = new URL(url);
+    const parsedUrl = new URL(cleaned);
     parsedUrl.searchParams.delete('channel_binding');
     if (parsedUrl.hostname.includes('-pooler') && !parsedUrl.searchParams.has('pgbouncer')) {
       parsedUrl.searchParams.set('pgbouncer', 'true');
     }
     return parsedUrl.toString();
   } catch (err) {
-    return url;
+    return cleaned;
   }
 }
 
