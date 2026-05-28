@@ -3,8 +3,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install openssl & libc6-compat for Prisma engine compatibility on Alpine
-RUN apk add --no-cache openssl libc6-compat
+# Install openssl & libc6-compat & ca-certificates for compatibility and TLS/SSL connections on Alpine
+RUN apk add --no-cache openssl libc6-compat ca-certificates
 
 # Copy dependency files first (layer cache optimisation)
 COPY package*.json ./
@@ -28,8 +28,8 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install openssl & libc6-compat for Prisma engine compatibility on Alpine
-RUN apk add --no-cache openssl libc6-compat
+# Install openssl & libc6-compat & ca-certificates for compatibility and TLS/SSL connections on Alpine
+RUN apk add --no-cache openssl libc6-compat ca-certificates
 
 # Copy dependency files
 COPY package*.json ./
@@ -46,5 +46,5 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 3001
 
-# Run migrations, seed (idempotent), then start the app
-CMD npx prisma migrate deploy && node dist/prisma/seed.js; node dist/src/main
+# Run migrations, then start the app
+CMD npx prisma migrate deploy && node dist/src/main
