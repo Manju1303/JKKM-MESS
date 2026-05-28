@@ -56,9 +56,8 @@ async function bootstrap() {
   // Always respect PORT env var — Railway injects PORT and routes traffic to it
   const port = parseInt(process.env.PORT || '') || 3001;
 
-  // ── Swagger (DEVELOPMENT ONLY) ────────────────────────────────────────────
-  // Never expose API docs in production — it reveals your entire API surface
-  if (process.env.NODE_ENV !== 'production') {
+  const nodeEnv = (process.env.NODE_ENV || '').trim().replace(/^["']|["']$/g, '');
+  if (nodeEnv !== 'production') {
     const config = new DocumentBuilder()
       .setTitle('JKKM Mess ERP API')
       .setDescription('Enterprise Hostel Mess Automation ERP - API Documentation')

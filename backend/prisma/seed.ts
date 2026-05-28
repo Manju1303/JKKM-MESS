@@ -3,7 +3,8 @@ import * as bcrypt from 'bcryptjs';
 import * as dns from 'dns';
 
 // CONNECTIVITY FIX: Override DNS lookup to bypass local DNS blocks on Neon DB
-if (process.env.NODE_ENV !== 'production') {
+const nodeEnv = (process.env.NODE_ENV || '').trim().replace(/^["']|["']$/g, '');
+if (nodeEnv !== 'production') {
   dns.setServers(['8.8.8.8', '8.8.4.4']);
   const originalLookup = dns.lookup;
   (dns as any).lookup = function (hostname: string, options: any, callback: any) {
