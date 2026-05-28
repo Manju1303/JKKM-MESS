@@ -1,7 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
 
 /**
  * PrismaService wraps PrismaClient and manages DB lifecycle
@@ -27,25 +25,18 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   constructor() {
     const rawConnectionString = process.env.DATABASE_URL;
     const connectionString = sanitizeDatabaseUrl(rawConnectionString);
-    const nodeEnv = (process.env.NODE_ENV || '').trim().replace(/^["']|["']$/g, '');
-    const useSsl = connectionString?.includes('sslmode=') || nodeEnv === 'production';
-    const pool = new Pool({
-      connectionString,
-      ...(useSsl && {
-        ssl: {
-          rejectUnauthorized: false,
+    super({
+      datasources: {
+        db: {
+          url: connectionString,
         },
-      }),
+      },
     });
-    const adapter = new PrismaPg(pool);
-    // NOTE: When using a driver adapter, datasources config is ignored —
-    // the connection is fully controlled by the Pool adapter above.
-    super({ adapter });
   }
 
   async onModuleInit() {
     await this.$connect();
-    console.log('✅ Prisma connected to PostgreSQL via Driver Adapter');
+    console.log('✅ Prisma connected to PostgreSQL');
   }
 
   async onModuleDestroy() {
