@@ -1,7 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import StatsCard from '@/components/dashboard/StatsCard';
-import { inventoryAPI, kitchenAPI } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
+import { inventoryAPI, attendanceAPI, purchasesAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -9,47 +11,10 @@ import {
 } from 'recharts';
 import {
   Package, AlertTriangle, IndianRupee, Clock,
-  TrendingDown, Trash2, ChefHat,
+  TrendingDown, Trash2, ChefHat, Users, ShieldAlert,
+  FileText, CheckCircle, MessageSquare, ListTodo, Plus, Calendar, Eye, ClipboardList, ArrowRight, Camera
 } from 'lucide-react';
 
-// ── Mock chart data (replaced by real API in production) ─────────────────────
-const stockTrendData = [
-  { date: '22 May', rice: 450, dal: 120, oil: 30 },
-  { date: '23 May', rice: 420, dal: 110, oil: 27 },
-  { date: '24 May', rice: 390, dal: 105, oil: 24 },
-  { date: '25 May', rice: 380, dal: 98,  oil: 20 },
-  { date: '26 May', rice: 360, dal: 92,  oil: 17 },
-  { date: '27 May', rice: 340, dal: 88,  oil: 15 },
-  { date: '28 May', rice: 320, dal: 82,  oil: 12 },
-];
-
-const consumptionData = [
-  { day: 'Mon', breakfast: 45, lunch: 120, dinner: 105 },
-  { day: 'Tue', breakfast: 42, lunch: 118, dinner: 98  },
-  { day: 'Wed', breakfast: 48, lunch: 125, dinner: 110 },
-  { day: 'Thu', breakfast: 44, lunch: 122, dinner: 102 },
-  { day: 'Fri', breakfast: 50, lunch: 130, dinner: 115 },
-  { day: 'Sat', breakfast: 55, lunch: 140, dinner: 120 },
-  { day: 'Sun', breakfast: 60, lunch: 145, dinner: 125 },
-];
-
-const expenseData = [
-  { month: 'Jan', amount: 85000 },
-  { month: 'Feb', amount: 92000 },
-  { month: 'Mar', amount: 78000 },
-  { month: 'Apr', amount: 95000 },
-  { month: 'May', amount: 88000 },
-  { month: 'Jun', amount: 102000 },
-];
-
-const wasteData = [
-  { name: 'Expired',    value: 35, color: 'hsl(0,84%,60%)' },
-  { name: 'Overcooked', value: 28, color: 'hsl(28,95%,50%)' },
-  { name: 'Damaged',    value: 20, color: 'hsl(38,92%,50%)' },
-  { name: 'Other',      value: 17, color: 'hsl(220,10%,60%)' },
-];
-
-// ── Custom tooltip shared by all charts ──────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }: {
   active?: boolean;
   payload?: Array<{ color: string; name: string; value: number }>;
@@ -68,34 +33,106 @@ const CustomTooltip = ({ active, payload, label }: {
   );
 };
 
-// ── Page component ────────────────────────────────────────────────────────────
+const transformAttendanceTrend = (records: any[]) => {
+  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayMap: Record<string, { day: string; Breakfast: number; Lunch: number; Dinner: number; Snack: number; breakfast: number; lunch: number; dinner: number; snack: number }> = {};
+  
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dayName = daysOfWeek[d.getDay()];
+    const dateStr = d.toISOString().split('T')[0];
+    dayMap[dateStr] = {
+      day: dayName,
+      Breakfast: 0, Lunch: 0, Dinner: 0, Snack: 0,
+      breakfast: 0, lunch: 0, dinner: 0, snack: 0
+    };
+  }
+
+  records.forEach((r) => {
+    const dateStr = new Date(r.date).toISOString().split('T')[0];
+    if (dayMap[dateStr]) {
+      const mealKey = r.meal.toUpperCase();
+      if (mealKey === 'BREAKFAST') {
+        dayMap[dateStr].Breakfast += r.count;
+        dayMap[dateStr].breakfast += r.count;
+      } else if (mealKey === 'LUNCH') {
+        dayMap[dateStr].Lunch += r.count;
+        dayMap[dateStr].lunch += r.count;
+      } else if (mealKey === 'DINNER') {
+        dayMap[dateStr].Dinner += r.count;
+        dayMap[dateStr].dinner += r.count;
+      } else if (mealKey === 'SNACK') {
+        dayMap[dateStr].Snack += r.count;
+        dayMap[dateStr].snack += r.count;
+      }
+    }
+  });
+
+  return Object.values(dayMap);
+};
+
 export default function DashboardPage() {
-  const [stats, setStats]         = useState<Record<string, number> | null>(null);
-  const [lowStock, setLowStock]   = useState<unknown[]>([]);
-  const [expiring, setExpiring]   = useState<unknown[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const { user } = useAuthStore();
+  const [stats, setStats] = useState<Record<string, number> | null>(null);
+  const [lowStock, setLowStock] = useState<unknown[]>([]);
+  const [expiring, setExpiring] = useState<unknown[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Live clock
+  // Real datasets for charts
+  const [weeklyAttendance, setWeeklyAttendance] = useState<any[]>([]);
+  const [monthlyExpenses, setMonthlyExpenses] = useState<any[]>([]);
+  const [stockTrend, setStockTrend] = useState<any[]>([]);
+
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  // Fetch dashboard data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, lowStockRes, expiringRes] = await Promise.allSettled([
+        const [statsRes, lowStockRes, expiringRes, trendRes, expensesRes, invRes] = await Promise.allSettled([
           inventoryAPI.getStats(),
           inventoryAPI.getLowStock(),
           inventoryAPI.getExpiringSoon(7),
+          attendanceAPI.getWeeklyTrend(),
+          purchasesAPI.getMonthlyExpenses(),
+          inventoryAPI.getAll(),
         ]);
-        if (statsRes.status === 'fulfilled')    setStats(statsRes.value.data);
+        
+        if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
         if (lowStockRes.status === 'fulfilled') setLowStock(lowStockRes.value.data);
         if (expiringRes.status === 'fulfilled') setExpiring(expiringRes.value.data);
-      } catch {
-        // Silently handle — mock data still renders
+        
+        if (trendRes.status === 'fulfilled' && trendRes.value.data) {
+          setWeeklyAttendance(transformAttendanceTrend(trendRes.value.data));
+        }
+
+        if (expensesRes.status === 'fulfilled' && expensesRes.value.data) {
+          const formatted = expensesRes.value.data.map((item: any) => {
+            const date = new Date(item.month + '-02');
+            const monthName = date.toLocaleDateString('en-IN', { month: 'short' });
+            return { month: monthName, amount: item.amount };
+          });
+          setMonthlyExpenses(formatted);
+        }
+
+        if (invRes.status === 'fulfilled' && invRes.value.data) {
+          const sums: Record<string, number> = {};
+          invRes.value.data.forEach((i: any) => {
+            const name = i.product?.name || 'Unknown';
+            sums[name] = (sums[name] || 0) + i.quantity;
+          });
+          const chartData = Object.entries(sums).map(([name, qty]) => ({
+            productName: name,
+            quantity: qty
+          })).slice(0, 5);
+          setStockTrend(chartData);
+        }
+      } catch (e) {
+        console.error('Failed to load dashboard data:', e);
       } finally {
         setLoading(false);
       }
@@ -103,222 +140,365 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
-  const lowStockCount  = stats?.lowStockCount  ?? lowStock.length;
-  const expiringCount  = stats?.expiringSoonCount ?? expiring.length;
-  const totalItems     = stats?.totalItems ?? '—';
-  const totalValue     = stats ? formatCurrency(stats.totalInventoryValue ?? 0) : '—';
+  const lowStockCount = stats?.lowStockCount ?? lowStock.length;
+  const expiringCount = stats?.expiringSoonCount ?? expiring.length;
+  const totalItems = stats?.totalItems ?? 0;
+  const totalValue = stats ? formatCurrency(stats.totalInventoryValue ?? 0) : '₹0.00';
+  const activeRole = user?.role || 'STUDENT_VIEWER';
 
   return (
     <div className="space-y-6 animate-in">
-      {/* Live header */}
-      <div className="flex items-center justify-between">
-        <p className="text-muted-foreground text-sm">
-          {currentTime.toLocaleDateString('en-IN', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-          })}
-        </p>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-card border border-border rounded-lg px-3 py-1.5">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span>Live • {currentTime.toLocaleTimeString('en-IN')}</span>
+      {/* Live Header & Greeting */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border p-6 rounded-xl shadow-sm">
+        <div>
+          <h1 className="text-2xl font-black text-foreground tracking-tight">
+            Welcome back, {user?.name || 'User'}
+          </h1>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+              {activeRole.replace('_', ' ')}
+            </span>
+            <span className="text-xs text-muted-foreground">• JKKM Mess ERP Panel</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 self-start sm:self-center">
+          <p className="text-muted-foreground text-sm font-medium">
+            {currentTime.toLocaleDateString('en-IN', {
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+            })}
+          </p>
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground bg-muted border border-border rounded-lg px-3 py-1.5">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <span>Live • {currentTime.toLocaleTimeString('en-IN')}</span>
+          </div>
         </div>
       </div>
 
-      {/* KPI Stats Row */}
-      <section aria-label="Key Performance Indicators" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard
-          title="Total Inventory Items"
-          value={totalItems}
-          subtitle="Across all categories"
-          icon={<Package className="w-5 h-5" />}
-          variant="primary"
-          trend={5}
-          trendLabel="+3 items this week"
-          isLoading={loading}
-        />
-        <StatsCard
-          title="Low Stock Alerts"
-          value={lowStockCount}
-          subtitle="Below minimum level"
-          icon={<AlertTriangle className="w-5 h-5" />}
-          variant={lowStockCount > 5 ? 'danger' : 'warning'}
-          isLoading={loading}
-        />
-        <StatsCard
-          title="Expiring Soon"
-          value={expiringCount}
-          subtitle="Within next 7 days"
-          icon={<Clock className="w-5 h-5" />}
-          variant={expiringCount > 3 ? 'danger' : 'warning'}
-          isLoading={loading}
-        />
-        <StatsCard
-          title="Inventory Value"
-          value={totalValue}
-          subtitle="Current stock valuation"
-          icon={<IndianRupee className="w-5 h-5" />}
-          variant="success"
-          trend={3}
-          isLoading={loading}
-        />
-      </section>
+      {/* ──────────────────────────────────────────────────────────────────────────
+          ROLE-BASED DASHBOARDS
+          ────────────────────────────────────────────────────────────────────────── */}
 
-      {/* Charts Row 1 */}
-      <section aria-label="Stock Trend and Waste Analytics" className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Stock level trend area chart */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-foreground">Stock Level Trends</h3>
-              <p className="text-xs text-muted-foreground">Last 7 days – Key items (KG)</p>
+      {/* 1. SUPER_ADMIN DASHBOARD */}
+      {activeRole === 'SUPER_ADMIN' && (
+        <div className="space-y-6">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatsCard title="Total Inventory Items" value={totalItems} subtitle="Seeded items in system" icon={<Package className="w-5 h-5" />} variant="primary" isLoading={loading} />
+            <StatsCard title="System Roles Active" value={7} subtitle="Role Profiles configured" icon={<ShieldAlert className="w-5 h-5" />} variant="warning" isLoading={loading} />
+            <StatsCard title="Active Low Stock Alerts" value={lowStockCount} subtitle="Items requiring reorder" icon={<AlertTriangle className="w-5 h-5" />} variant="danger" isLoading={loading} />
+            <StatsCard title="Total Valuation" value={totalValue} subtitle="Estimated total stock value" icon={<IndianRupee className="w-5 h-5" />} variant="success" isLoading={loading} />
+          </section>
+
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-card border border-border p-6 rounded-xl space-y-4">
+              <h3 className="font-bold text-foreground text-md flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-primary" /> Admin Quick Actions
+              </h3>
+              <p className="text-sm text-muted-foreground">Perform global administrative operations and user management tasks.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <Link href="/dashboard/users" className="flex items-center justify-between p-3 rounded-lg bg-muted border border-border hover:bg-primary/5 hover:border-primary/30 transition-all group">
+                  <span className="text-sm font-semibold group-hover:text-primary">Manage Users</span>
+                  <Plus className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
+                </Link>
+                <Link href="/dashboard/settings" className="flex items-center justify-between p-3 rounded-lg bg-muted border border-border hover:bg-primary/5 hover:border-primary/30 transition-all group">
+                  <span className="text-sm font-semibold group-hover:text-primary">System Settings</span>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
+                </Link>
+              </div>
             </div>
-            <TrendingDown className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={stockTrendData}>
-              <defs>
-                <linearGradient id="riceGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="hsl(224,76%,58%)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(224,76%,58%)" stopOpacity={0}   />
-                </linearGradient>
-                <linearGradient id="dalGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="hsl(28,95%,50%)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(28,95%,50%)" stopOpacity={0}   />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
-              <Area type="monotone" dataKey="rice" name="Ponni Rice" stroke="hsl(224,76%,58%)" fill="url(#riceGrad)" strokeWidth={2} />
-              <Area type="monotone" dataKey="dal"  name="Toor Dal"   stroke="hsl(28,95%,50%)"  fill="url(#dalGrad)"  strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
+            <div className="bg-card border border-border p-6 rounded-xl space-y-3">
+              <h3 className="font-bold text-foreground text-md flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" /> System Accounts
+              </h3>
+              <p className="text-sm text-muted-foreground">Standard seeded roles ready for deployment testing:</p>
+              <ul className="text-xs space-y-1.5 text-muted-foreground bg-muted/50 p-3 rounded-lg border border-border">
+                <li>• **Mess Manager**: `messmanager@jkkm.edu.in`</li>
+                <li>• **Storekeeper**: `storekeeper@jkkm.edu.in`</li>
+                <li>• **Kitchen Staff**: `kitchen@jkkm.edu.in`</li>
+                <li>• **Accountant**: `accounts@jkkm.edu.in`</li>
+              </ul>
+            </div>
+          </section>
         </div>
+      )}
 
-        {/* Waste analytics donut */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-foreground">Waste Analytics</h3>
-              <p className="text-xs text-muted-foreground">This month by reason</p>
+      {/* 2. MESS_MANAGER DASHBOARD */}
+      {activeRole === 'MESS_MANAGER' && (
+        <div className="space-y-6">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatsCard title="Total Inventory Items" value={totalItems} subtitle="Categories managed" icon={<Package className="w-5 h-5" />} variant="primary" isLoading={loading} />
+            <StatsCard title="Low Stock Warnings" value={lowStockCount} subtitle="Needs PO immediately" icon={<AlertTriangle className="w-5 h-5" />} variant="danger" isLoading={loading} />
+            <StatsCard title="Expiring Soon (7d)" value={expiringCount} subtitle="Needs kitchen dispatch" icon={<Clock className="w-5 h-5" />} variant="warning" isLoading={loading} />
+            <StatsCard title="Portfolio Valuation" value={totalValue} subtitle="Estimated total stock value" icon={<IndianRupee className="w-5 h-5" />} variant="success" isLoading={loading} />
+          </section>
+
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-card border border-border p-6 rounded-xl">
+              <h3 className="font-bold text-foreground text-md mb-4 flex items-center justify-between">
+                <span>Stock Level Trends</span>
+                <TrendingDown className="w-4 h-4 text-muted-foreground" />
+              </h3>
+               <ResponsiveContainer width="100%" height={240}>
+                <AreaChart data={stockTrend}>
+                  <defs>
+                    <linearGradient id="riceGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="hsl(224,76%,58%)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(224,76%,58%)" stopOpacity={0}   />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="productName" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="quantity" name="Quantity" stroke="hsl(224,76%,58%)" fill="url(#riceGrad)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-            <Trash2 className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <ResponsiveContainer width="100%" height={140}>
-            <PieChart>
-              <Pie
-                data={wasteData}
-                cx="50%" cy="50%"
-                innerRadius={40} outerRadius={60}
-                paddingAngle={3} dataKey="value"
-              >
-                {wasteData.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="space-y-1.5 mt-2">
-            {wasteData.map((item) => (
-              <div key={item.name} className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: item.color }} />
-                  <span className="text-muted-foreground">{item.name}</span>
+            <div className="bg-card border border-border p-6 rounded-xl flex flex-col justify-between">
+              <div>
+                <h3 className="font-bold text-foreground text-md mb-2">Manager Quick Actions</h3>
+                <p className="text-xs text-muted-foreground mb-4">Core shortcuts for hostel mess supervisors:</p>
+                <div className="space-y-2">
+                  <Link href="/dashboard/purchases" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
+                    <ClipboardList className="w-4 h-4 text-primary" /> Review Purchase Orders
+                  </Link>
+                  <Link href="/dashboard/reports" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
+                    <FileText className="w-4 h-4 text-primary" /> Download Valuation Reports
+                  </Link>
                 </div>
-                <span className="font-medium text-foreground">{item.value}%</span>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Charts Row 2 */}
-      <section aria-label="Daily Consumption and Expense Tracking" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Daily consumption bar chart */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-foreground">Daily Consumption</h3>
-              <p className="text-xs text-muted-foreground">Student count by meal – this week</p>
+              {lowStockCount > 0 && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-3 rounded-lg text-xs mt-4">
+                  ⚠️ **Action Needed:** {lowStockCount} items require re-ordering. Please verify current quotes and dispatch Purchase Orders.
+                </div>
+              )}
             </div>
-            <ChefHat className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={consumptionData} barGap={4}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
-              <Bar dataKey="breakfast" name="Breakfast" fill="hsl(224,76%,58%)" radius={[3,3,0,0]} />
-              <Bar dataKey="lunch"     name="Lunch"     fill="hsl(28,95%,50%)"  radius={[3,3,0,0]} />
-              <Bar dataKey="dinner"    name="Dinner"    fill="hsl(142,71%,45%)" radius={[3,3,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          </section>
         </div>
+      )}
 
-        {/* Monthly expenses bar chart */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-foreground">Monthly Expenses</h3>
-              <p className="text-xs text-muted-foreground">Purchase spend – 2026</p>
-            </div>
-            <IndianRupee className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={expenseData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-              <YAxis
-                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                axisLine={false} tickLine={false}
-                tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="amount" name="Expenses" fill="hsl(224,76%,58%)" radius={[4,4,0,0]}>
-                {expenseData.map((_, i) => (
-                  <Cell
-                    key={i}
-                    fill={i === expenseData.length - 1 ? 'hsl(28,95%,50%)' : 'hsl(224,76%,58%)'}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </section>
+      {/* 3. STORE_KEEPER DASHBOARD */}
+      {activeRole === 'STORE_KEEPER' && (
+        <div className="space-y-6">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <StatsCard title="Total Stock Items" value={totalItems} subtitle="Available in store" icon={<Package className="w-5 h-5" />} variant="primary" isLoading={loading} />
+            <StatsCard title="Low Stock Warnings" value={lowStockCount} subtitle="Needs PO immediately" icon={<AlertTriangle className="w-5 h-5" />} variant="danger" isLoading={loading} />
+            <StatsCard title="Expiring Soon (7d)" value={expiringCount} subtitle="Check batch codes" icon={<Clock className="w-5 h-5" />} variant="warning" isLoading={loading} />
+          </section>
 
-      {/* Quick alerts row */}
-      {(lowStockCount > 0 || expiringCount > 0) && (
-        <section aria-label="Inventory Alerts" className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {lowStockCount > 0 && (
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-                <h4 className="font-semibold text-amber-500">Low Stock Alert</h4>
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 bg-card border border-border p-6 rounded-xl space-y-4">
+              <h3 className="font-bold text-foreground text-md flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-primary" /> Storekeeper Operations
+              </h3>
+              <p className="text-sm text-muted-foreground">Manage incoming goods, update inventory levels, and process scans.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Link href="/dashboard/barcode" className="flex flex-col items-center justify-center p-4 rounded-xl bg-muted border border-border hover:bg-primary/5 hover:border-primary/30 transition-all text-center">
+                  <Camera className="w-6 h-6 text-primary mb-2" />
+                  <span className="text-sm font-semibold">Barcode Station</span>
+                </Link>
+                <Link href="/dashboard/inventory" className="flex flex-col items-center justify-center p-4 rounded-xl bg-muted border border-border hover:bg-primary/5 hover:border-primary/30 transition-all text-center">
+                  <Plus className="w-6 h-6 text-primary mb-2" />
+                  <span className="text-sm font-semibold">Add Manual Stock</span>
+                </Link>
+                <Link href="/dashboard/purchases" className="flex flex-col items-center justify-center p-4 rounded-xl bg-muted border border-border hover:bg-primary/5 hover:border-primary/30 transition-all text-center">
+                  <ClipboardList className="w-6 h-6 text-primary mb-2" />
+                  <span className="text-sm font-semibold">Create PO</span>
+                </Link>
               </div>
-              <p className="text-sm text-muted-foreground">
-                <span className="font-bold text-amber-400">{lowStockCount} items</span> are below minimum stock level.
-                Raise purchase orders immediately.
-              </p>
             </div>
-          )}
-          {expiringCount > 0 && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <Clock className="w-5 h-5 text-red-500 flex-shrink-0" />
-                <h4 className="font-semibold text-red-500">Expiry Warning</h4>
+            <div className="bg-card border border-border p-6 rounded-xl space-y-3">
+              <h3 className="font-bold text-foreground text-md">Stock Alerts</h3>
+              <div className="space-y-2 text-xs">
+                {lowStockCount > 0 ? (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded">
+                    ⚠️ {lowStockCount} items below limit.
+                  </div>
+                ) : (
+                  <div className="p-3 bg-green-500/10 border border-green-500/20 text-green-600 rounded">
+                    ✅ All core stock levels are normal.
+                  </div>
+                )}
+                {expiringCount > 0 && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-600 rounded">
+                    ⏰ {expiringCount} items expiring within 7 days.
+                  </div>
+                )}
               </div>
-              <p className="text-sm text-muted-foreground">
-                <span className="font-bold text-red-400">{expiringCount} items</span> will expire within 7 days.
-                Use or return to supplier.
-              </p>
             </div>
-          )}
-        </section>
+          </section>
+        </div>
+      )}
+
+      {/* 4. KITCHEN_STAFF DASHBOARD */}
+      {activeRole === 'KITCHEN_STAFF' && (
+        <div className="space-y-6">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <StatsCard title="Expiring Soon (7d)" value={expiringCount} subtitle="Ingredients to dispatch first" icon={<Clock className="w-5 h-5" />} variant="warning" isLoading={loading} />
+            <StatsCard title="Pending Kitchen Issues" value={0} subtitle="Requested stock logs" icon={<ChefHat className="w-5 h-5" />} variant="primary" isLoading={loading} />
+            <StatsCard title="Daily Meals Configured" value={4} subtitle="Breakfast, Lunch, Snacks, Dinner" icon={<Calendar className="w-5 h-5" />} variant="success" isLoading={loading} />
+          </section>
+
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-card border border-border p-6 rounded-xl">
+              <h3 className="font-semibold text-foreground text-md mb-4 flex items-center gap-2">
+                <ChefHat className="w-5 h-5 text-primary" /> Daily Headcount Attendance Trends
+              </h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={weeklyAttendance}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="day" />
+                  <YAxis />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="lunch" name="Lunch Headcount" fill="hsl(28,95%,50%)" radius={[3,3,0,0]} />
+                  <Bar dataKey="dinner" name="Dinner Headcount" fill="hsl(142,71%,45%)" radius={[3,3,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="bg-card border border-border p-6 rounded-xl space-y-4">
+              <h3 className="font-bold text-foreground text-md">Kitchen Staff Actions</h3>
+              <p className="text-xs text-muted-foreground">Log ingredients used for cooking and report food waste daily:</p>
+              <div className="space-y-2">
+                <Link href="/dashboard/kitchen" className="flex items-center gap-2 p-2.5 rounded bg-primary text-white hover:bg-primary/95 text-sm font-semibold transition-all">
+                  <Plus className="w-4 h-4" /> Issue Ingredients for Meal
+                </Link>
+                <Link href="/dashboard/wastage" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
+                  <Trash2 className="w-4 h-4 text-primary" /> Log Food Wastage
+                </Link>
+                <Link href="/dashboard/menu" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
+                  <Calendar className="w-4 h-4 text-primary" /> View Today's Menu
+                </Link>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* 5. ACCOUNTANT DASHBOARD */}
+      {activeRole === 'ACCOUNTANT' && (
+        <div className="space-y-6">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <StatsCard title="Total Inventory Value" value={totalValue} subtitle="Estimated total stock value" icon={<IndianRupee className="w-5 h-5" />} variant="success" isLoading={loading} />
+            <StatsCard title="Pending Purchases" value={0} subtitle="Unbilled orders" icon={<ClipboardList className="w-5 h-5" />} variant="primary" isLoading={loading} />
+            <StatsCard title="Low Stock Items" value={lowStockCount} subtitle="Requires PO" icon={<AlertTriangle className="w-5 h-5" />} variant="danger" isLoading={loading} />
+          </section>
+
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-card border border-border p-6 rounded-xl">
+              <h3 className="font-bold text-foreground text-md mb-4 flex items-center justify-between">
+                <span>Monthly Purchase Expenses</span>
+                <IndianRupee className="w-4 h-4 text-muted-foreground" />
+              </h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={monthlyExpenses}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" />
+                  <YAxis tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="amount" name="Spend" fill="hsl(224,76%,58%)" radius={[4,4,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="bg-card border border-border p-6 rounded-xl space-y-4">
+              <h3 className="font-bold text-foreground text-md">Financial Actions</h3>
+              <p className="text-xs text-muted-foreground">Download financial statements and review active supplier invoices:</p>
+              <div className="space-y-2">
+                <Link href="/dashboard/reports" className="flex items-center gap-2 p-2.5 rounded bg-primary text-white hover:bg-primary/95 text-sm font-semibold transition-all">
+                  <FileText className="w-4 h-4" /> Download Excel Reports
+                </Link>
+                <Link href="/dashboard/purchases" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
+                  <ClipboardList className="w-4 h-4 text-primary" /> Audit Purchase Orders
+                  </Link>
+                </div>
+              </div>
+          </section>
+        </div>
+      )}
+
+      {/* 6. HOSTEL_WARDEN DASHBOARD */}
+      {activeRole === 'HOSTEL_WARDEN' && (
+        <div className="space-y-6">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <StatsCard title="Logged Attendance Today" value="Verified" subtitle="Daily headcount entry" icon={<CheckCircle className="w-5 h-5" />} variant="success" isLoading={loading} />
+            <StatsCard title="Unresolved Student Complaints" value="Active" subtitle="Needs warden resolution" icon={<MessageSquare className="w-5 h-5" />} variant="danger" isLoading={loading} />
+            <StatsCard title="Current Meal Headcount" value={145} subtitle="Lunches served today" icon={<ChefHat className="w-5 h-5" />} variant="primary" isLoading={loading} />
+          </section>
+
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-card border border-border p-6 rounded-xl">
+              <h3 className="font-semibold text-foreground text-md mb-4">Student Headcount Trends</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={weeklyAttendance}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="day" />
+                  <YAxis />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="lunch" name="Lunch Attendance" fill="hsl(28,95%,50%)" radius={[3,3,0,0]} />
+                  <Bar dataKey="dinner" name="Dinner Attendance" fill="hsl(142,71%,45%)" radius={[3,3,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="bg-card border border-border p-6 rounded-xl space-y-4">
+              <h3 className="font-bold text-foreground text-md">Warden Administration</h3>
+              <p className="text-xs text-muted-foreground">Manage student meal headcounts and review mess quality complaints:</p>
+              <div className="space-y-2">
+                <Link href="/dashboard/attendance" className="flex items-center gap-2 p-2.5 rounded bg-primary text-white hover:bg-primary/95 text-sm font-semibold transition-all">
+                  <ListTodo className="w-4 h-4" /> Log Today's Headcount
+                </Link>
+                <Link href="/dashboard/complaints" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
+                  <MessageSquare className="w-4 h-4 text-primary" /> View Student Complaints
+                </Link>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* 7. STUDENT_VIEWER DASHBOARD */}
+      {activeRole === 'STUDENT_VIEWER' && (
+        <div className="space-y-6">
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Daily Menu Widget */}
+            <div className="md:col-span-2 bg-card border border-border p-6 rounded-xl space-y-4 shadow-sm">
+              <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
+                <ChefHat className="w-5 h-5 text-primary" /> Today's Mess Menu
+              </h3>
+              <p className="text-xs text-muted-foreground">Menu configured for {currentTime.toLocaleDateString('en-IN', { month: 'long', day: 'numeric' })}:</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                <div className="bg-muted/55 border border-border p-4 rounded-xl space-y-2">
+                  <span className="text-xs font-black uppercase text-primary tracking-wider">Breakfast</span>
+                  <p className="text-sm font-bold text-foreground">Idli, Sambar, Coconut Chutney, Tea/Milk</p>
+                </div>
+                <div className="bg-muted/55 border border-border p-4 rounded-xl space-y-2">
+                  <span className="text-xs font-black uppercase text-primary tracking-wider">Lunch</span>
+                  <p className="text-sm font-bold text-foreground">Ponni Rice, Sambar, Beetroot Poriyal, Curd</p>
+                </div>
+                <div className="bg-muted/55 border border-border p-4 rounded-xl space-y-2">
+                  <span className="text-xs font-black uppercase text-primary tracking-wider">Dinner</span>
+                  <p className="text-sm font-bold text-foreground">Chappati, Veg Kurma, Rice, Rasam</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Student Actions */}
+            <div className="bg-card border border-border p-6 rounded-xl space-y-4 shadow-sm flex flex-col justify-between">
+              <div>
+                <h3 className="font-bold text-foreground text-md flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-primary" /> Student Support
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1 mb-4">Submit suggestions or file complaints regarding food quality or hygiene:</p>
+                <div className="space-y-2">
+                  <Link href="/dashboard/complaints" className="flex items-center justify-between p-3 rounded-lg bg-primary hover:bg-primary/95 text-white text-sm font-semibold transition-all">
+                    <span>Submit Complaint</span>
+                    <Plus className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+              <div className="text-[10px] text-muted-foreground bg-muted p-2.5 rounded border border-border mt-4">
+                ℹ️ **Note:** Wardens review all submitted complaints daily at 9:00 PM. Check back for resolution logs.
+              </div>
+            </div>
+          </section>
+        </div>
       )}
     </div>
   );

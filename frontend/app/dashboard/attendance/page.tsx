@@ -17,28 +17,38 @@ interface AttendanceLog {
   createdAt: string;
 }
 
-// ── Mock Fallback Data ────────────────────────────────────────────────────────
-const mockWeeklyTrend = [
-  { day: 'Mon', Breakfast: 320, Lunch: 450, Dinner: 410 },
-  { day: 'Tue', Breakfast: 310, Lunch: 460, Dinner: 425 },
-  { day: 'Wed', Breakfast: 340, Lunch: 480, Dinner: 440 },
-  { day: 'Thu', Breakfast: 330, Lunch: 470, Dinner: 435 },
-  { day: 'Fri', Breakfast: 350, Lunch: 495, Dinner: 450 },
-  { day: 'Sat', Breakfast: 210, Lunch: 280, Dinner: 260 },
-  { day: 'Sun', Breakfast: 180, Lunch: 240, Dinner: 220 },
-];
 
-const mockLogs: AttendanceLog[] = [
-  { id: 1, date: '2026-05-22', meal: 'LUNCH', count: 495, hostel: 'Boys Hostel A', notes: 'Regular Friday strength', createdAt: '2026-05-22T13:00:00.000Z' },
-  { id: 2, date: '2026-05-22', meal: 'BREAKFAST', count: 350, hostel: 'All Hostels', notes: 'Idli / Sambar menu', createdAt: '2026-05-22T08:00:00.000Z' },
-  { id: 3, date: '2026-05-21', meal: 'DINNER', count: 435, hostel: 'Boys Hostel B', notes: 'Chapati menu', createdAt: '2026-05-21T20:30:00.000Z' },
-  { id: 4, date: '2026-05-21', meal: 'LUNCH', count: 470, hostel: 'Girls Hostel', notes: 'Curd rice extra demand', createdAt: '2026-05-21T13:15:00.000Z' },
-];
+
+const transformAttendanceTrend = (records: any[]) => {
+  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayMap: Record<string, { day: string; Breakfast: number; Lunch: number; Dinner: number; Snack: number }> = {};
+  
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dayName = daysOfWeek[d.getDay()];
+    const dateStr = d.toISOString().split('T')[0];
+    dayMap[dateStr] = { day: dayName, Breakfast: 0, Lunch: 0, Dinner: 0, Snack: 0 };
+  }
+
+  records.forEach((r) => {
+    const dateStr = new Date(r.date).toISOString().split('T')[0];
+    if (dayMap[dateStr]) {
+      const mealKey = r.meal.toUpperCase();
+      if (mealKey === 'BREAKFAST') dayMap[dateStr].Breakfast += r.count;
+      else if (mealKey === 'LUNCH') dayMap[dateStr].Lunch += r.count;
+      else if (mealKey === 'DINNER') dayMap[dateStr].Dinner += r.count;
+      else if (mealKey === 'SNACK') dayMap[dateStr].Snack += r.count;
+    }
+  });
+
+  return Object.values(dayMap);
+};
 
 export default function AttendancePage() {
-  const [logs, setLogs] = useState<AttendanceLog[]>(mockLogs);
-  const [weeklyData, setWeeklyData] = useState<any[]>(mockWeeklyTrend);
-  const [stats, setStats] = useState({ todayCount: 845, weeklyAvg: 375, peakCount: 495 });
+  const [logs, setLogs] = useState<AttendanceLog[]>([]);
+  const [weeklyData, setWeeklyData] = useState<any[]>([]);
+  const [stats, setStats] = useState({ todayCount: 0, weeklyAvg: 0, peakCount: 0 });
   const [loading, setLoading] = useState(true);
 
   // Form State
@@ -57,11 +67,13 @@ export default function AttendancePage() {
         attendanceAPI.getStats(),
         attendanceAPI.getWeeklyTrend()
       ]);
-      if (logsRes.data && logsRes.data.length > 0) setLogs(logsRes.data);
+      if (logsRes.data) setLogs(logsRes.data);
       if (statsRes.data) setStats(statsRes.data);
-      if (trendRes.data && trendRes.data.length > 0) setWeeklyData(trendRes.data);
+      if (trendRes.data && trendRes.data.length > 0) {
+        setWeeklyData(transformAttendanceTrend(trendRes.data));
+      }
     } catch (e) {
-      console.log('Using fallback local mock data for attendance');
+      console.error('Failed to fetch attendance data:', e);
     } finally {
       setLoading(false);
     }
@@ -94,26 +106,7 @@ export default function AttendancePage() {
         fetchAttendance(); // refresh list
       }
     } catch (error: any) {
-      // Mock insert on client for instant demo when backend is local & disconnected
-      const newLog: AttendanceLog = {
-        id: logs.length + 1,
-        date,
-        meal,
-        count: parseInt(count, 10),
-        hostel,
-        notes,
-        createdAt: new Date().toISOString(),
-      };
-      setLogs([newLog, ...logs]);
-      setStatusMsg({ type: 'success', text: 'Mock Log Added! (Backend connection skipped)' });
-      setCount('');
-      setNotes('');
-      // update stats locally
-      setStats(prev => ({
-        ...prev,
-        todayCount: prev.todayCount + parseInt(count, 10),
-        peakCount: Math.max(prev.peakCount, parseInt(count, 10))
-      }));
+      setStatusMsg({ type: 'error', text: error.response?.data?.message || 'Failed to log headcount.' });
     }
   };
 

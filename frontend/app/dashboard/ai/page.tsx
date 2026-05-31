@@ -12,60 +12,29 @@ import {
   PieChart, Pie
 } from 'recharts';
 
-// ── Mock Fallback Data matching backend mock structure ───────────────────────
-const mockInsights = {
+const emptyInsights = {
   summary: {
-    criticalItems: 2,
-    highUrgencyItems: 3,
-    spendingAnomalies: 1,
-    topConsumerProduct: 'Ponni Rice',
-    prepEfficiency: 92,
-    wastedCost: 12450,
+    criticalItems: 0,
+    highUrgencyItems: 0,
+    spendingAnomalies: 0,
+    topConsumerProduct: 'N/A',
+    prepEfficiency: 0,
+    wastedCost: 0,
   },
-  reorderSuggestions: [
-    { productId: 1, productName: 'Ponni Rice', currentStock: 320, minRequired: 500, unit: 'KG', suggestedOrderQty: 600, urgency: 'HIGH' },
-    { productId: 2, productName: 'Toor Dal', currentStock: 82, minRequired: 100, unit: 'KG', suggestedOrderQty: 150, urgency: 'MEDIUM' },
-    { productId: 5, productName: 'Sunflower Oil', currentStock: 0, minRequired: 50, unit: 'LITRE', suggestedOrderQty: 80, urgency: 'CRITICAL' },
-  ],
-  anomalies: [
-    { purchaseNumber: 'PO-2026-0520', netAmount: 185000, purchaseDate: '2026-05-20', supplierId: 3, zScore: 2.45, isHigh: true, supplierName: 'Sri Balaji Traders' },
-  ],
-  predictions: [
-    { productId: 1, productName: 'Ponni Rice', unit: 'KG', avgDailyUsage: 45.5, predicted7DayNeed: 318.5, recommendedOrderQty: 382.2 },
-    { productId: 2, productName: 'Toor Dal', unit: 'KG', avgDailyUsage: 12.3, predicted7DayNeed: 86.1, recommendedOrderQty: 103.3 },
-    { productId: 3, productName: 'Atta (Flour)', unit: 'KG', avgDailyUsage: 18.2, predicted7DayNeed: 127.4, recommendedOrderQty: 152.9 },
-    { productId: 4, productName: 'Potato', unit: 'KG', avgDailyUsage: 25.0, predicted7DayNeed: 175.0, recommendedOrderQty: 210.0 },
-    { productId: 5, productName: 'Sunflower Oil', unit: 'LITRE', avgDailyUsage: 8.5, predicted7DayNeed: 59.5, recommendedOrderQty: 71.4 },
-  ],
-  stockRunout: [
-    { productId: 1, productName: 'Ponni Rice', currentStock: 320, unit: 'KG', avgDailyUsage: 45.5, daysRemaining: 7.0, urgency: 'HIGH' },
-    { productId: 2, productName: 'Toor Dal', currentStock: 82, unit: 'KG', avgDailyUsage: 12.3, daysRemaining: 6.7, urgency: 'HIGH' },
-    { productId: 3, productName: 'Atta (Flour)', currentStock: 250, unit: 'KG', avgDailyUsage: 18.2, daysRemaining: 13.7, urgency: 'NORMAL' },
-    { productId: 4, productName: 'Potato', currentStock: 18, unit: 'KG', avgDailyUsage: 25.0, daysRemaining: 0.7, urgency: 'CRITICAL' },
-    { productId: 5, productName: 'Sunflower Oil', currentStock: 0, unit: 'LITRE', avgDailyUsage: 8.5, daysRemaining: 0, urgency: 'CRITICAL' },
-  ],
+  reorderSuggestions: [] as any[],
+  anomalies: [] as any[],
+  predictions: [] as any[],
+  stockRunout: [] as any[],
   seasonal: {
-    weekdayAvgQuantity: 114.5,
-    weekendAvgQuantity: 82.3,
-    mealAverages: [
-      { meal: 'BREAKFAST', avgQuantity: 28.5 },
-      { meal: 'LUNCH', avgQuantity: 42.1 },
-      { meal: 'DINNER', avgQuantity: 39.8 },
-      { meal: 'SNACK', avgQuantity: 12.6 },
-    ],
-    insights: [
-      'Weekday attendance spikes volume needs by ~15% due to college attendance records.',
-      'Dinner represents the highest caloric consumption index.',
-    ],
+    weekdayAvgQuantity: 0,
+    weekendAvgQuantity: 0,
+    mealAverages: [] as any[],
+    insights: [] as string[],
   },
   waste: {
-    totalWastedValue: 12450,
-    reasons: [
-      { reason: 'EXPIRED', count: 3, value: 4500, quantity: 90 },
-      { reason: 'DAMAGED', count: 2, value: 2450, quantity: 45 },
-      { reason: 'OVERCOOK', count: 6, value: 5500, quantity: 120 },
-    ],
-    prepEfficiencyIndex: 92,
+    totalWastedValue: 0,
+    reasons: [] as any[],
+    prepEfficiencyIndex: 0,
   },
 };
 
@@ -73,7 +42,7 @@ const COLORS = ['#FF8042', '#0088FE', '#00C49F', '#FFBB28', '#8884d8'];
 
 export default function AiInsightsPage() {
   const [activeTab, setActiveTab] = useState<'core' | 'attendance' | 'depletion' | 'seasonal' | 'waste'>('core');
-  const [data, setData] = useState(mockInsights);
+  const [data, setData] = useState(emptyInsights);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -90,16 +59,25 @@ export default function AiInsightsPage() {
         // Hydrate data with API response
         setData({
           summary: res.data.summary,
-          reorderSuggestions: res.data.reorderSuggestions || mockInsights.reorderSuggestions,
-          anomalies: res.data.anomalies || mockInsights.anomalies,
-          predictions: res.data.predictions || mockInsights.predictions,
-          stockRunout: res.data.stockRunout || mockInsights.stockRunout,
-          seasonal: res.data.seasonal || mockInsights.seasonal,
-          waste: res.data.waste || mockInsights.waste,
+          reorderSuggestions: res.data.reorderSuggestions || [],
+          anomalies: res.data.anomalies || [],
+          predictions: res.data.predictions || [],
+          stockRunout: res.data.stockRunout || [],
+          seasonal: res.data.seasonal || {
+            weekdayAvgQuantity: 0,
+            weekendAvgQuantity: 0,
+            mealAverages: [],
+            insights: [],
+          },
+          waste: res.data.waste || {
+            totalWastedValue: 0,
+            reasons: [],
+            prepEfficiencyIndex: 0,
+          },
         });
       }
     } catch (e) {
-      console.log('Using local mock AI forecasting outputs');
+      console.error('Failed to fetch AI insights:', e);
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -113,31 +91,14 @@ export default function AiInsightsPage() {
       if (res.data && res.data.length > 0) {
         setAttendanceForecast(res.data);
       } else {
-        triggerFallbackForecast(count);
+        setAttendanceForecast([]);
       }
     } catch (e) {
-      triggerFallbackForecast(count);
+      console.error('Failed to fetch attendance forecast:', e);
+      setAttendanceForecast([]);
     } finally {
       setForecastingLoading(false);
     }
-  };
-
-  const triggerFallbackForecast = (count: number) => {
-    const fallback = mockInsights.predictions.map((p, idx) => {
-      const perStudentMeal = [0.095, 0.025, 0.04, 0.055, 0.018][idx] || 0.05;
-      const singleMealQty = perStudentMeal * count;
-      const dailyQty = singleMealQty * 3;
-      return {
-        productId: p.productId,
-        productName: p.productName,
-        unit: p.unit,
-        perStudentMeal,
-        predictedMealNeed: Math.round(singleMealQty * 10) / 10,
-        predictedDailyNeed: Math.round(dailyQty * 10) / 10,
-        predictedWeeklyNeed: Math.round(dailyQty * 7 * 10) / 10,
-      };
-    });
-    setAttendanceForecast(fallback);
   };
 
   useEffect(() => {

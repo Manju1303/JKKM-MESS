@@ -20,28 +20,12 @@ interface UserItem {
   createdAt: string;
 }
 
-// ── Mock Fallback Data ────────────────────────────────────────────────────────
-const mockRoles = [
-  { id: 1, name: 'Super Admin', description: 'Total system control & configurations' },
-  { id: 2, name: 'Mess Manager', description: 'Mess approvals, menus, and reports' },
-  { id: 3, name: 'Storekeeper', description: 'Inventory management & stock intake' },
-  { id: 4, name: 'Kitchen Staff', description: 'Kitchen stock issue & daily tracking' },
-  { id: 5, name: 'Accountant', description: 'Supplier spend audits & payments' },
-  { id: 6, name: 'Management Viewer', description: 'Read-only analytics & summaries' },
-];
 
-const mockUsers: UserItem[] = [
-  { id: 1, name: 'Ramanathan Swamy', email: 'admin@jkkm.edu.in', phone: '9845123456', role: mockRoles[0], roleId: 1, isActive: true, lastLogin: new Date().toISOString(), createdAt: '2026-05-01T00:00:00.000Z' },
-  { id: 2, name: 'Karthik Rajan', email: 'manager@jkkm.edu.in', phone: '9443212345', role: mockRoles[1], roleId: 2, isActive: true, lastLogin: new Date(Date.now() - 3600000).toISOString(), createdAt: '2026-05-02T00:00:00.000Z' },
-  { id: 3, name: 'Srinivasan Murugan', email: 'store@jkkm.edu.in', phone: '9786543210', role: mockRoles[2], roleId: 3, isActive: true, lastLogin: new Date(Date.now() - 7200000).toISOString(), createdAt: '2026-05-03T00:00:00.000Z' },
-  { id: 4, name: 'Meenakshi Sundaram', email: 'kitchen@jkkm.edu.in', phone: '9944123456', role: mockRoles[3], roleId: 4, isActive: true, lastLogin: new Date(Date.now() - 86400000).toISOString(), createdAt: '2026-05-05T00:00:00.000Z' },
-  { id: 5, name: 'Venkatesh Iyer', email: 'accounts@jkkm.edu.in', phone: '8122345678', role: mockRoles[4], roleId: 5, isActive: true, lastLogin: new Date(Date.now() - 172800000).toISOString(), createdAt: '2026-05-06T00:00:00.000Z' },
-];
 
 export default function UsersPage() {
   const { user: currentUser } = useAuthStore();
-  const [users, setUsers] = useState<UserItem[]>(mockUsers);
-  const [roles, setRoles] = useState<any[]>(mockRoles);
+  const [users, setUsers] = useState<UserItem[]>([]);
+  const [roles, setRoles] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
@@ -114,21 +98,7 @@ export default function UsersPage() {
         fetchUsersAndRoles();
       }
     } catch (err: any) {
-      // Mock Client Add fallback
-      const mockNewUser: UserItem = {
-        id: users.length + 1,
-        name: newName,
-        email: newEmail,
-        phone: newPhone,
-        role: roles.find(r => r.id === newRoleId) || mockRoles[2],
-        roleId: newRoleId,
-        isActive: true,
-        createdAt: new Date().toISOString()
-      };
-      setUsers([mockNewUser, ...users]);
-      setStatusMsg({ type: 'success', text: `Mock User Added! (Registration endpoint skipped)` });
-      setShowAddModal(false);
-      resetAddForm();
+      setStatusMsg({ type: 'error', text: err.response?.data?.message || 'Failed to register user.' });
     }
   };
 
@@ -157,15 +127,8 @@ export default function UsersPage() {
         setShowEditModal(false);
         fetchUsersAndRoles();
       }
-    } catch {
-      // Mock Client Edit fallback
-      setUsers(users.map(u => u.id === selectedUser.id ? {
-        ...u,
-        roleId: editRoleId,
-        role: roles.find(r => r.id === editRoleId) || u.role
-      } : u));
-      setStatusMsg({ type: 'success', text: `Mock role updated! (API connection skipped)` });
-      setShowEditModal(false);
+    } catch (err: any) {
+      setStatusMsg({ type: 'error', text: err.response?.data?.message || 'Failed to update user role.' });
     }
   };
 
@@ -175,10 +138,8 @@ export default function UsersPage() {
         await usersAPI.deactivate(id);
         setStatusMsg({ type: 'success', text: `User ${name} deactivated.` });
         fetchUsersAndRoles();
-      } catch {
-        // Mock Client Deactivate fallback
-        setUsers(users.filter(u => u.id !== id));
-        setStatusMsg({ type: 'success', text: `Mock User deactivated. (Soft deleted locally)` });
+      } catch (err: any) {
+        setStatusMsg({ type: 'error', text: err.response?.data?.message || 'Failed to deactivate user.' });
       }
     }
   };

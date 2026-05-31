@@ -17,15 +17,6 @@ interface AlertItem {
   createdAt: string;
 }
 
-// ── Mock Fallback Data ────────────────────────────────────────────────────────
-const mockAlerts: AlertItem[] = [
-  { id: 1, title: 'Low Stock Alert: Sunflower Oil', message: 'Sunflower Oil is currently at 0 LITRE. Min required level is 50 LITRE.', type: 'LOW_STOCK', severity: 'CRITICAL', isRead: false, createdAt: new Date().toISOString() },
-  { id: 2, title: 'Expiring Soon: Toor Dal Batch #TD524', message: 'Batch TD524 (150 KG) will expire in 4 days.', type: 'EXPIRY', severity: 'WARNING', isRead: false, createdAt: new Date(Date.now() - 3600000).toISOString() },
-  { id: 3, title: 'Purchase Approved: PO-2026-0518', message: 'Mess Manager approved procurement from Sri Balaji Traders (₹12,400).', type: 'PURCHASE', severity: 'INFO', isRead: false, createdAt: new Date(Date.now() - 7200000).toISOString() },
-  { id: 4, title: 'System Database Backup Successful', message: 'Automated database snapshot completed. Saved to S3 storage bucket.', type: 'SYSTEM', severity: 'INFO', isRead: true, createdAt: new Date(Date.now() - 86400000).toISOString() },
-  { id: 5, title: 'Stock Intake Logged: Rice', message: 'Storekeeper logged 1,200 KG of Ponni Rice into Main Store.', type: 'PURCHASE', severity: 'INFO', isRead: true, createdAt: new Date(Date.now() - 172800000).toISOString() },
-];
-
 export default function NotificationsPage() {
   const { notifications, unreadCount, setNotifications, markRead, markAllRead } = useNotificationStore();
   const [filter, setFilter] = useState<'ALL' | 'UNREAD' | 'CRITICAL'>('ALL');
@@ -35,14 +26,11 @@ export default function NotificationsPage() {
     try {
       setLoading(true);
       const res = await notificationsAPI.getAll();
-      if (res.data && res.data.length > 0) {
+      if (res.data) {
         setNotifications(res.data);
-      } else {
-        setNotifications(mockAlerts);
       }
     } catch (e) {
-      console.log('Using local mock alerts cache');
-      setNotifications(mockAlerts);
+      console.error('Failed to fetch notifications:', e);
     } finally {
       setLoading(false);
     }

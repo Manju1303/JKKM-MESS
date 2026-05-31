@@ -58,15 +58,8 @@ export default function SettingsPage() {
         setPassword('');
         setConfirmPassword('');
       }
-    } catch {
-      // Mock Client update fallback
-      if (token) {
-        const mockUpdated = { ...user, name, email, phone };
-        setAuth(mockUpdated, token);
-        setStatusMsg({ type: 'success', text: 'Mock Profile Saved! (API connection skipped)' });
-        setPassword('');
-        setConfirmPassword('');
-      }
+    } catch (err: any) {
+      setStatusMsg({ type: 'error', text: err.response?.data?.message || 'Failed to update profile.' });
     }
   };
 

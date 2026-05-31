@@ -19,6 +19,13 @@ export default function BarcodePage() {
   const [expiryDate, setExpiryDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Camera scanner states
+  const [isScanning, setIsScanning] = useState(false);
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState('');
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const codeReaderRef = useRef<any>(null);
+
   // Focus scanner input on load
   useEffect(() => {
     if (inputRef.current) {
@@ -26,26 +33,53 @@ export default function BarcodePage() {
     }
   }, []);
 
-  const handleBarcodeSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!barcode.trim()) return;
+  // Enumerate video devices on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && navigator.mediaDevices) {
+      navigator.mediaDevices.enumerateDevices()
+        .then(devices => {
+          const videoDevs = devices.filter(d => d.kind === 'videoinput');
+          setVideoDevices(videoDevs);
+          if (videoDevs.length > 0) {
+            setSelectedDeviceId(videoDevs[0].deviceId);
+          }
+        })
+        .catch(err => console.error('Error enumerating devices:', err));
+    }
+  }, []);
 
+  // Release camera resources on unmount
+  useEffect(() => {
+    return () => {
+      if (codeReaderRef.current) {
+        codeReaderRef.current.reset();
+      }
+    };
+  }, []);
+
+  const lookupBarcode = async (codeToLookup: string) => {
+    if (!codeToLookup.trim()) return;
     setLoading(true);
     setError('');
     setSuccess('');
     setProduct(null);
 
     try {
-      const res = await productsAPI.getByBarcode(barcode.trim());
+      const res = await productsAPI.getByBarcode(codeToLookup.trim());
       setProduct(res.data);
       setCostPerUnit('');
       setQuantity('');
       setBatchNumber(`BATCH-${Date.now().toString().slice(-6)}`);
     } catch (err: any) {
-      setError(err.response?.data?.message || `No product registered with barcode "${barcode}".`);
+      setError(err.response?.data?.message || `No product registered with barcode "${codeToLookup}".`);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBarcodeSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    lookupBarcode(barcode);
   };
 
   const handleAddStock = async (e: React.FormEvent) => {
@@ -86,25 +120,63 @@ export default function BarcodePage() {
     }
   };
 
-  const triggerMockScan = (code: string) => {
-    setBarcode(code);
+  const stopScanning = () => {
+    if (codeReaderRef.current) {
+      codeReaderRef.current.reset();
+    }
+    setIsScanning(false);
+  };
+
+  const startScanning = async () => {
+    setIsScanning(true);
+    setError('');
+    setSuccess('');
+    // Wait for the video element to mount/render
     setTimeout(() => {
-      // Trigger API fetch
-      productsAPI.getByBarcode(code)
-        .then(res => {
-          setProduct(res.data);
-          setBarcode(code);
-          setError('');
-          setSuccess('');
-          setQuantity('');
-          setCostPerUnit('');
-          setBatchNumber(`BATCH-${Date.now().toString().slice(-6)}`);
-        })
-        .catch(() => {
-          setError(`No product registered with barcode "${code}".`);
-          setProduct(null);
-        });
-    }, 100);
+      startScanningWithDevice(selectedDeviceId);
+    }, 150);
+  };
+
+  const startScanningWithDevice = async (deviceId: string) => {
+    try {
+      const { BrowserMultiFormatReader } = await import('@zxing/browser');
+      if (!codeReaderRef.current) {
+        codeReaderRef.current = new BrowserMultiFormatReader();
+      }
+
+      // Request camera permission explicitly first to ensure labels are populated
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach(track => track.stop());
+
+      // Refresh devices to get full labels if permission was just granted
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevs = devices.filter(d => d.kind === 'videoinput');
+      setVideoDevices(videoDevs);
+
+      const targetDeviceId = deviceId || (videoDevs.length > 0 ? videoDevs[0].deviceId : '');
+      if (targetDeviceId) {
+        setSelectedDeviceId(targetDeviceId);
+      }
+
+      if (videoRef.current) {
+        await codeReaderRef.current.decodeFromVideoDevice(
+          targetDeviceId || undefined,
+          videoRef.current,
+          (result: any) => {
+            if (result) {
+              const scannedText = result.getText();
+              setBarcode(scannedText);
+              lookupBarcode(scannedText);
+              stopScanning();
+            }
+          }
+        );
+      }
+    } catch (err: any) {
+      console.error('Failed to start scanner:', err);
+      setError('Could not access camera. Please check permissions and ensure you are using HTTPS or localhost.');
+      setIsScanning(false);
+    }
   };
 
   return (
@@ -116,7 +188,7 @@ export default function BarcodePage() {
         <div className="text-center md:text-left space-y-1">
           <h2 className="text-xl font-bold text-foreground">Barcode Automation Station</h2>
           <p className="text-sm text-muted-foreground">
-            Scan physical barcodes using a USB hardware scanner (which acts as a keyboard) or trigger a test scan below.
+            Scan physical barcodes using a USB hardware scanner (which acts as a keyboard) or start the camera scanner to decode in real-time.
           </p>
         </div>
       </section>
@@ -154,29 +226,56 @@ export default function BarcodePage() {
 
           <hr className="border-border" />
 
-          {/* Quick Demo Scans */}
-          <div className="space-y-2">
-            <h4 className="text-xs font-semibold text-muted-foreground">Mock Scanner Tests</h4>
-            <div className="grid grid-cols-1 gap-2">
+          {/* Camera Scanner Toggle */}
+          <div className="space-y-3 pt-1">
+            <h4 className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+              <Camera className="w-4 h-4 text-primary" /> Camera Scanner Control
+            </h4>
+
+            {isScanning ? (
               <button
-                onClick={() => triggerMockScan('RICE1001')}
-                className="text-left px-3 py-1.5 text-xs rounded bg-muted border border-border hover:bg-muted/80 text-foreground truncate"
+                type="button"
+                onClick={stopScanning}
+                className="w-full py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-lg transition-all"
               >
-                Scan Rice (RICE1001)
+                Stop Camera
               </button>
+            ) : (
               <button
-                onClick={() => triggerMockScan('MILK2002')}
-                className="text-left px-3 py-1.5 text-xs rounded bg-muted border border-border hover:bg-muted/80 text-foreground truncate"
+                type="button"
+                onClick={startScanning}
+                className="w-full py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-500 rounded-lg transition-all"
               >
-                Scan Milk Packet (MILK2002)
+                Start Camera Scanner
               </button>
-              <button
-                onClick={() => triggerMockScan('UNKNOWN999')}
-                className="text-left px-3 py-1.5 text-xs rounded bg-muted border border-border hover:bg-muted/80 text-foreground truncate"
-              >
-                Scan Unknown Barcode (UNKNOWN999)
-              </button>
-            </div>
+            )}
+
+            {videoDevices.length > 0 && (
+              <div className="space-y-1">
+                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Select Camera Device
+                </label>
+                <select
+                  value={selectedDeviceId}
+                  onChange={(e) => {
+                    setSelectedDeviceId(e.target.value);
+                    if (isScanning) {
+                      stopScanning();
+                      setTimeout(() => {
+                        startScanningWithDevice(e.target.value);
+                      }, 250);
+                    }
+                  }}
+                  className="w-full px-2 py-1.5 text-xs rounded bg-muted border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  {videoDevices.map((device, idx) => (
+                    <option key={device.deviceId} value={device.deviceId}>
+                      {device.label || `Camera ${idx + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </section>
 
@@ -308,12 +407,28 @@ export default function BarcodePage() {
                 </div>
               </form>
             </div>
+          ) : isScanning ? (
+            <div className="bg-card border border-border rounded-xl overflow-hidden relative min-h-[320px] bg-black flex items-center justify-center">
+              <video
+                ref={videoRef}
+                className="w-full h-full object-cover max-h-[400px]"
+                playsInline
+                muted
+              />
+              {/* Scan HUD / Overlay */}
+              <div className="absolute inset-0 border-[3px] border-primary/40 m-8 rounded-lg pointer-events-none flex items-center justify-center">
+                <div className="w-full h-[2px] bg-primary animate-pulse" />
+              </div>
+              <span className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-[11px] px-3 py-1 rounded-full pointer-events-none">
+                Align barcode within camera frame
+              </span>
+            </div>
           ) : (
             <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground">
               <QrCode className="w-16 h-16 mx-auto mb-3 opacity-20 animate-pulse text-primary" />
               <h3 className="font-bold text-foreground text-md mb-1">Ready to Scan</h3>
               <p className="text-sm">
-                Place the cursor in the input field, scan a barcode using your hardware scanner, or click one of the mock tests to verify the setup.
+                Place the cursor in the input field, scan a barcode using your hardware scanner, or start the camera scanner to scan using your device's camera.
               </p>
             </div>
           )}
