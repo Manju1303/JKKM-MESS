@@ -23,7 +23,7 @@ export class AuthController {
   /** SECURITY: Only authenticated Super Admins can create new users */
   @Post('register')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Super Admin')
+  @Roles('SUPER_ADMIN')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Register a new user — Super Admin only' })
   register(@Body() dto: RegisterDto) {
