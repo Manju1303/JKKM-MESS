@@ -20,6 +20,8 @@ async function bootstrap() {
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'http://localhost:3000',
     'https://jkkm-mess.vercel.app',
+    'https://erp.arockiamedicalcentre.in',
+    'http://erp.arockiamedicalcentre.in',
   ];
   app.enableCors({
     origin: (origin, callback) => {

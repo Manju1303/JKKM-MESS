@@ -23,6 +23,8 @@ import { JwtService } from '@nestjs/jwt';
         process.env.FRONTEND_URL || 'http://localhost:3000',
         'http://localhost:3000',
         'https://jkkm-mess.vercel.app',
+        'https://erp.arockiamedicalcentre.in',
+        'http://erp.arockiamedicalcentre.in',
       ];
       if (!origin || origin.endsWith('.vercel.app') || allowed.includes(origin)) {
         callback(null, true);
