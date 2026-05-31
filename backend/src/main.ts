@@ -56,7 +56,8 @@ async function bootstrap() {
   app.useWebSocketAdapter(new IoAdapter(app));
 
   // Always respect PORT env var — Railway injects PORT and routes traffic to it
-  const port = parseInt(process.env.PORT || '') || 3001;
+  const rawPort = (process.env.PORT || '').trim().replace(/^["']|["']$/g, '');
+  const port = parseInt(rawPort) || 3001;
 
   const nodeEnv = (process.env.NODE_ENV || '').trim().replace(/^["']|["']$/g, '');
   if (nodeEnv !== 'production') {
