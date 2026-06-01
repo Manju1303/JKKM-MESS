@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { AppGateway } from '../gateway/app.gateway';
+import { getTodayRangeIST } from '../common/date.utils';
 
 @Injectable()
 export class KitchenService {
@@ -75,12 +76,9 @@ export class KitchenService {
 
   /** Get all issues for today */
   async getTodayIssues() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const { start, end } = getTodayRangeIST();
     const issues = await this.prisma.dailyIssue.findMany({
-      where: { issueDate: { gte: today, lt: tomorrow } },
+      where: { issueDate: { gte: start, lt: end } },
       include: {
         product: true,
         issuedBy: { select: { name: true } },

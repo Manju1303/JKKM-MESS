@@ -124,11 +124,14 @@ export class InventoryService {
     const client = tx || this.prisma;
     const inventories = await client.inventory.findMany({
       where: { productId, isExpired: false, quantity: { gt: 0 } },
+      include: { product: true },
       orderBy: [
         { expiryDate: { sort: 'asc', nulls: 'last' } },
         { createdAt: 'asc' },
       ],
     });
+
+    const totalStockBefore = inventories.reduce((sum, inv) => sum + inv.quantity, 0);
     let remaining = quantity;
     const affectedBatches: { id: number; quantity: number; costPerUnit: number }[] = [];
 
@@ -150,39 +153,44 @@ export class InventoryService {
       remaining -= deduct;
     }
 
-    // Dynamic warning trigger: check if updated quantity falls below threshold and emit WS event
-    try {
-      const product = await client.product.findUnique({
-        where: { id: productId },
-      });
-      if (product) {
-        const activeStock = await client.inventory.aggregate({
-          where: { productId, isExpired: false, quantity: { gt: 0 } },
-          _sum: { quantity: true },
+    const deductedAmount = quantity - remaining;
+    const currentQty = totalStockBefore - deductedAmount;
+
+    // Get product from fetched inventories if available
+    let product = inventories[0]?.product;
+    if (!product) {
+      // Fallback: fetch product details if no inventory was found
+      try {
+        product = await client.product.findUnique({
+          where: { id: productId },
         });
-        const currentQty = activeStock._sum.quantity || 0;
-        if (currentQty <= product.minStockLevel) {
-          this.appGateway.emitLowStockAlert({
-            productId,
-            productName: product.name,
-            currentQty,
-            minLevel: product.minStockLevel,
-          });
-          // Non-blocking email alert
-          this.emailService.sendLowStockAlert(
-            product.name,
-            currentQty,
-            product.minStockLevel,
-            product.unit,
-          ).catch(() => {});
-        }
+      } catch (err) {
+        console.error('Failed to fetch product details fallback:', err.message);
       }
-    } catch (err) {
-      // Don't break database transaction if WS notification fails
-      console.error('Failed to broadcast low stock alert:', err.message);
     }
 
-    return { deducted: quantity - remaining, remaining, affectedBatches };
+    // Dynamic warning trigger: check if updated quantity falls below threshold and emit WS event
+    if (product && currentQty <= product.minStockLevel) {
+      try {
+        this.appGateway.emitLowStockAlert({
+          productId,
+          productName: product.name,
+          currentQty,
+          minLevel: product.minStockLevel,
+        });
+        // Non-blocking email alert
+        this.emailService.sendLowStockAlert(
+          product.name,
+          currentQty,
+          product.minStockLevel,
+          product.unit,
+        ).catch(() => {});
+      } catch (err) {
+        console.error('Failed to broadcast low stock alert:', err.message);
+      }
+    }
+
+    return { deducted: deductedAmount, remaining, affectedBatches };
   }
 
   async getMovements(productId?: number) {

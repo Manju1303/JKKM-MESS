@@ -18,10 +18,10 @@ export class ReportsService {
 
   /** Generate daily consumption + purchase + wastage report as in-memory Excel buffer */
   async generateDailyReport(date: string, userId: number) {
-    const targetDate = new Date(date);
-    targetDate.setHours(0, 0, 0, 0);
-    const nextDay = new Date(targetDate);
-    nextDay.setDate(nextDay.getDate() + 1);
+    const [year, month, day] = date.split('-').map(Number);
+    const startMs = Date.UTC(year, month - 1, day, 0, 0, 0) - 5.5 * 60 * 60 * 1000;
+    const targetDate = new Date(startMs);
+    const nextDay = new Date(startMs + 24 * 60 * 60 * 1000);
 
     const [issues, purchases, wastages] = await Promise.all([
       this.prisma.dailyIssue.findMany({

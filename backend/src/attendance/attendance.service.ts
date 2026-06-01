@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
 import { UpdateAttendanceDto } from './dto/update-attendance.dto';
+import { getTodayRangeIST } from '../common/date.utils';
 
 @Injectable()
 export class AttendanceService {
@@ -40,13 +41,10 @@ export class AttendanceService {
   }
 
   async getStats() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const { start, end } = getTodayRangeIST();
     const [todayRecords, avgResult] = await Promise.all([
       this.prisma.attendance.findMany({
-        where: { date: { gte: today, lt: tomorrow } },
+        where: { date: { gte: start, lt: end } },
       }),
       this.prisma.attendance.aggregate({ _avg: { count: true } }),
     ]);
@@ -70,12 +68,9 @@ export class AttendanceService {
 
   /** Returns today's total student headcount — used by AI forecasting */
   async getTodayHeadcount(): Promise<number> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const { start, end } = getTodayRangeIST();
     const records = await this.prisma.attendance.findMany({
-      where: { date: { gte: today, lt: tomorrow } },
+      where: { date: { gte: start, lt: end } },
     });
     return records.reduce((sum, r) => sum + r.count, 0);
   }
