@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsEnum, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateProductDto {
@@ -42,4 +42,9 @@ export class CreateProductDto {
   @IsOptional()
   @IsNumber()
   maxStockLevel?: number;
+
+  @ApiProperty({ required: false, example: true, description: 'Is the product active' })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }
