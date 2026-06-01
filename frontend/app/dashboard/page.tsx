@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import StatsCard from '@/components/dashboard/StatsCard';
 import { useAuthStore } from '@/store/authStore';
-import { inventoryAPI, attendanceAPI, purchasesAPI } from '@/lib/api';
+import { inventoryAPI, attendanceAPI, purchasesAPI, complaintsAPI, menuAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -85,6 +85,13 @@ export default function DashboardPage() {
   const [monthlyExpenses, setMonthlyExpenses] = useState<any[]>([]);
   const [stockTrend, setStockTrend] = useState<any[]>([]);
 
+  // Warden live data
+  const [todayHeadcount, setTodayHeadcount] = useState(0);
+  const [unresolvedComplaints, setUnresolvedComplaints] = useState(0);
+
+  // Student viewer — today's menu
+  const [todayMenu, setTodayMenu] = useState<Record<string, string>>({});
+
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(t);
@@ -93,19 +100,23 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, lowStockRes, expiringRes, trendRes, expensesRes, invRes] = await Promise.allSettled([
+        const [statsRes, lowStockRes, expiringRes, trendRes, expensesRes, invRes,
+               attendanceStatsRes, complaintsRes, menuRes] = await Promise.allSettled([
           inventoryAPI.getStats(),
           inventoryAPI.getLowStock(),
           inventoryAPI.getExpiringSoon(7),
           attendanceAPI.getWeeklyTrend(),
           purchasesAPI.getMonthlyExpenses(),
           inventoryAPI.getAll(),
+          attendanceAPI.getStats(),
+          complaintsAPI.getAll(),
+          menuAPI.getAll(),
         ]);
-        
+
         if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
         if (lowStockRes.status === 'fulfilled') setLowStock(lowStockRes.value.data);
         if (expiringRes.status === 'fulfilled') setExpiring(expiringRes.value.data);
-        
+
         if (trendRes.status === 'fulfilled' && trendRes.value.data) {
           setWeeklyAttendance(transformAttendanceTrend(trendRes.value.data));
         }
@@ -125,12 +136,43 @@ export default function DashboardPage() {
             const name = i.product?.name || 'Unknown';
             sums[name] = (sums[name] || 0) + i.quantity;
           });
-          const chartData = Object.entries(sums).map(([name, qty]) => ({
-            productName: name,
-            quantity: qty
-          })).slice(0, 5);
+          const chartData = Object.entries(sums)
+            .map(([name, qty]) => ({ productName: name, quantity: qty }))
+            .sort((a, b) => b.quantity - a.quantity)
+            .slice(0, 5);
           setStockTrend(chartData);
         }
+
+        // Warden: today's headcount from attendance stats
+        if (attendanceStatsRes.status === 'fulfilled') {
+          setTodayHeadcount(attendanceStatsRes.value.data?.todayTotal ?? 0);
+        }
+
+        // Warden: unresolved complaint count
+        if (complaintsRes.status === 'fulfilled') {
+          const all: any[] = complaintsRes.value.data || [];
+          setUnresolvedComplaints(all.filter((c: any) => c.status === 'PENDING').length);
+        }
+
+        // Student: today's menu — group by meal
+        if (menuRes.status === 'fulfilled') {
+          const todayStr = new Date().toISOString().split('T')[0];
+          const all: any[] = menuRes.value.data || [];
+          const todayEntries = all.filter((m: any) =>
+            new Date(m.date).toISOString().split('T')[0] === todayStr
+          );
+          const menuMap: Record<string, string> = {};
+          todayEntries.forEach((m: any) => {
+            try {
+              const items: string[] = JSON.parse(m.items);
+              menuMap[m.meal] = items.join(', ');
+            } catch {
+              menuMap[m.meal] = m.items;
+            }
+          });
+          setTodayMenu(menuMap);
+        }
+
       } catch (e) {
         console.error('Failed to load dashboard data:', e);
       } finally {
@@ -418,9 +460,9 @@ export default function DashboardPage() {
       {activeRole === 'HOSTEL_WARDEN' && (
         <div className="space-y-6">
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatsCard title="Logged Attendance Today" value="Verified" subtitle="Daily headcount entry" icon={<CheckCircle className="w-5 h-5" />} variant="success" isLoading={loading} />
-            <StatsCard title="Unresolved Student Complaints" value="Active" subtitle="Needs warden resolution" icon={<MessageSquare className="w-5 h-5" />} variant="danger" isLoading={loading} />
-            <StatsCard title="Current Meal Headcount" value={145} subtitle="Lunches served today" icon={<ChefHat className="w-5 h-5" />} variant="primary" isLoading={loading} />
+            <StatsCard title="Today's Meal Headcount" value={todayHeadcount} subtitle="Total students served today" icon={<ChefHat className="w-5 h-5" />} variant="primary" isLoading={loading} />
+            <StatsCard title="Unresolved Complaints" value={unresolvedComplaints} subtitle="Pending student complaints" icon={<MessageSquare className="w-5 h-5" />} variant={unresolvedComplaints > 0 ? 'danger' : 'success'} isLoading={loading} />
+            <StatsCard title="Attendance Logged" value={todayHeadcount > 0 ? 'Done' : 'Pending'} subtitle="Daily headcount entry status" icon={<CheckCircle className="w-5 h-5" />} variant={todayHeadcount > 0 ? 'success' : 'warning'} isLoading={loading} />
           </section>
 
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -446,6 +488,9 @@ export default function DashboardPage() {
                 </Link>
                 <Link href="/dashboard/complaints" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
                   <MessageSquare className="w-4 h-4 text-primary" /> View Student Complaints
+                  {unresolvedComplaints > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{unresolvedComplaints}</span>
+                  )}
                 </Link>
               </div>
             </div>
@@ -457,26 +502,36 @@ export default function DashboardPage() {
       {activeRole === 'STUDENT_VIEWER' && (
         <div className="space-y-6">
           <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Daily Menu Widget */}
+            {/* Today's Menu Widget — live from API */}
             <div className="md:col-span-2 bg-card border border-border p-6 rounded-xl space-y-4 shadow-sm">
               <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
                 <ChefHat className="w-5 h-5 text-primary" /> Today's Mess Menu
               </h3>
-              <p className="text-xs text-muted-foreground">Menu configured for {currentTime.toLocaleDateString('en-IN', { month: 'long', day: 'numeric' })}:</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                <div className="bg-muted/55 border border-border p-4 rounded-xl space-y-2">
-                  <span className="text-xs font-black uppercase text-primary tracking-wider">Breakfast</span>
-                  <p className="text-sm font-bold text-foreground">Idli, Sambar, Coconut Chutney, Tea/Milk</p>
+              <p className="text-xs text-muted-foreground">Menu for {currentTime.toLocaleDateString('en-IN', { month: 'long', day: 'numeric' })}:</p>
+              {loading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                  {['Breakfast', 'Lunch', 'Dinner'].map(m => (
+                    <div key={m} className="bg-muted/55 border border-border p-4 rounded-xl animate-pulse h-24" />
+                  ))}
                 </div>
-                <div className="bg-muted/55 border border-border p-4 rounded-xl space-y-2">
-                  <span className="text-xs font-black uppercase text-primary tracking-wider">Lunch</span>
-                  <p className="text-sm font-bold text-foreground">Ponni Rice, Sambar, Beetroot Poriyal, Curd</p>
+              ) : Object.keys(todayMenu).length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                  {['BREAKFAST', 'LUNCH', 'DINNER'].map((meal) => (
+                    todayMenu[meal] ? (
+                      <div key={meal} className="bg-muted/55 border border-border p-4 rounded-xl space-y-2">
+                        <span className="text-xs font-black uppercase text-primary tracking-wider">{meal.charAt(0) + meal.slice(1).toLowerCase()}</span>
+                        <p className="text-sm font-bold text-foreground">{todayMenu[meal]}</p>
+                      </div>
+                    ) : null
+                  ))}
                 </div>
-                <div className="bg-muted/55 border border-border p-4 rounded-xl space-y-2">
-                  <span className="text-xs font-black uppercase text-primary tracking-wider">Dinner</span>
-                  <p className="text-sm font-bold text-foreground">Chappati, Veg Kurma, Rice, Rasam</p>
+              ) : (
+                <div className="text-center py-6 text-sm text-muted-foreground bg-muted/30 rounded-xl border border-border">
+                  <ChefHat className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  <p>Today's menu has not been posted yet.</p>
+                  <p className="text-xs mt-1">Check back after breakfast hours.</p>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Student Actions */}
@@ -491,10 +546,14 @@ export default function DashboardPage() {
                     <span>Submit Complaint</span>
                     <Plus className="w-4 h-4" />
                   </Link>
+                  <Link href="/dashboard/menu" className="flex items-center justify-between p-3 rounded-lg bg-muted border border-border hover:bg-muted/80 text-sm font-semibold transition-all">
+                    <span>Full Weekly Menu</span>
+                    <Calendar className="w-4 h-4 text-primary" />
+                  </Link>
                 </div>
               </div>
               <div className="text-[10px] text-muted-foreground bg-muted p-2.5 rounded border border-border mt-4">
-                ℹ️ **Note:** Wardens review all submitted complaints daily at 9:00 PM. Check back for resolution logs.
+                ℹ️ Wardens review all submitted complaints daily at 9:00 PM.
               </div>
             </div>
           </section>

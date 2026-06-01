@@ -19,6 +19,7 @@ import { GatewayModule } from './gateway/gateway.module';
 import { MenuModule } from './menu/menu.module';
 import { ComplaintsModule } from './complaints/complaints.module';
 import { LoginActivityModule } from './login-activity/login-activity.module';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { LoginActivityModule } from './login-activity/login-activity.module';
     ComplaintsModule,
     LoginActivityModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}
 

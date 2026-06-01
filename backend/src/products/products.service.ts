@@ -16,12 +16,34 @@ export class ProductsService {
     });
   }
 
+  /**
+   * Find product by barcode field.
+   * Also attempts lookup by product code as fallback (supports manual entry).
+   */
   async findByBarcode(barcode: string) {
-    const product = await this.prisma.product.findUnique({
+    // Primary: exact barcode match
+    let product = await this.prisma.product.findUnique({
       where: { barcode },
       include: { category: true },
     });
-    if (!product) throw new NotFoundException(`Product not found for barcode: ${barcode}`);
+    // Fallback: treat input as product code (manual entry use-case)
+    if (!product) {
+      product = await this.prisma.product.findUnique({
+        where: { code: barcode },
+        include: { category: true },
+      });
+    }
+    if (!product) throw new NotFoundException(`No product found for barcode/code: "${barcode}"`);
+    return product;
+  }
+
+  /** Find product by product code (e.g. SKU) */
+  async findByCode(code: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { code },
+      include: { category: true },
+    });
+    if (!product) throw new NotFoundException(`No product found for code: "${code}"`);
     return product;
   }
 

@@ -217,6 +217,9 @@ model Wastage {
   reportedAt  DateTime
   notes       String?
   createdAt   DateTime @default(now())
+
+  @@index([reportedAt])
+  @@index([productId, reportedAt])
 }
 
 model Notification {
@@ -250,6 +253,9 @@ model Attendance {
   hostel    String?
   notes     String?
   createdAt DateTime @default(now())
+
+  @@index([date])
+  @@index([meal, date])
 }
 
 model Menu {
@@ -283,6 +289,10 @@ model LoginActivity {
   ipAddress String?
   device    String?  // Parsed device info / User-Agent
   timestamp DateTime @default(now())
+
+  @@index([email])
+  @@index([timestamp])
+  @@index([userId, timestamp])
 }
 
 model Complaint {

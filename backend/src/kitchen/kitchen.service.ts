@@ -124,42 +124,54 @@ export class KitchenService {
     });
   }
 
-  /** Daily meal-wise consumption summary */
+  /**
+   * Daily meal-wise consumption summary.
+   * PERF FIX: Replaced N×2 parallel findFirst calls with 2 batch queries
+   * using distinct + in-clause — reduces DB round-trips from O(N) to O(1).
+   */
   async getMealSummary(date?: string) {
     const targetDate = date ? new Date(date) : new Date();
     targetDate.setHours(0, 0, 0, 0);
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 1);
+
     const logs = await this.prisma.consumptionLog.findMany({
       where: { date: { gte: targetDate, lt: nextDay } },
       include: { dailyIssue: { include: { product: true } } },
     });
 
-    // Fetch latest purchase prices for the products issued today in parallel
     const productIds = Array.from(new Set(logs.map((l) => l.productId)));
     const pricesMap = new Map<number, number>();
-    await Promise.all(
-      productIds.map(async (pId) => {
-        const lastPurchaseItem = await this.prisma.purchaseItem.findFirst({
-          where: { productId: pId, purchase: { status: 'APPROVED' } },
-          orderBy: { purchase: { purchaseDate: 'desc' } },
-          select: { unitPrice: true },
-        });
-        if (lastPurchaseItem) {
-          pricesMap.set(pId, lastPurchaseItem.unitPrice);
-        } else {
-          // Fallback: find any inventory cost or 0
-          const firstInv = await this.prisma.inventory.findFirst({
-            where: { productId: pId },
-            orderBy: { createdAt: 'desc' },
-            select: { costPerUnit: true },
-          });
-          pricesMap.set(pId, firstInv?.costPerUnit ?? 0);
-        }
-      }),
-    );
 
-    const summary = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'].map((meal) => {
+    if (productIds.length > 0) {
+      // Single batch query: latest approved purchase price per product
+      const purchaseItems = await this.prisma.purchaseItem.findMany({
+        where: {
+          productId: { in: productIds },
+          purchase: { status: 'APPROVED' },
+        },
+        orderBy: { purchase: { purchaseDate: 'desc' } },
+        distinct: ['productId'],
+        select: { productId: true, unitPrice: true },
+      });
+      purchaseItems.forEach((pi) => pricesMap.set(pi.productId, pi.unitPrice));
+
+      // Fallback: for products still missing a price, batch-fetch from inventory
+      const missingIds = productIds.filter((id) => !pricesMap.has(id));
+      if (missingIds.length > 0) {
+        const invPrices = await this.prisma.inventory.findMany({
+          where: { productId: { in: missingIds } },
+          orderBy: { createdAt: 'desc' },
+          distinct: ['productId'],
+          select: { productId: true, costPerUnit: true },
+        });
+        invPrices.forEach((i) => {
+          if (!pricesMap.has(i.productId)) pricesMap.set(i.productId, i.costPerUnit);
+        });
+      }
+    }
+
+    return ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'].map((meal) => {
       const mealLogs = logs.filter((l) => l.meal === meal);
       const totalCost = mealLogs.reduce((sum, l) => {
         const unitCost = pricesMap.get(l.productId) ?? 0;
@@ -172,6 +184,5 @@ export class KitchenService {
         totalCost: Math.round(totalCost * 100) / 100,
       };
     });
-    return summary;
   }
 }

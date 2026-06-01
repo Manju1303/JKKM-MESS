@@ -37,7 +37,9 @@ export class PurchasesService {
 
   /** Create a purchase order (status: PENDING) */
   async create(data: any, userId: number) {
-    const purchaseNumber = `PO-${Date.now()}`;
+    // Collision-safe: timestamp + 5-char random base-36 suffix
+    const suffix = Math.random().toString(36).slice(2, 7).toUpperCase();
+    const purchaseNumber = `PO-${Date.now()}-${suffix}`;
     const purchase = await this.prisma.purchase.create({
       data: {
         purchaseNumber,

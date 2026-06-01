@@ -32,9 +32,15 @@ export class ProductsController {
   }
 
   @Get('barcode/:barcode')
-  @ApiOperation({ summary: 'Lookup product by barcode (for scanner integration)' })
+  @ApiOperation({ summary: 'Lookup product by barcode or product code (for scanner + manual entry)' })
   findByBarcode(@Param('barcode') barcode: string) {
     return this.productsService.findByBarcode(barcode);
+  }
+
+  @Get('code/:code')
+  @ApiOperation({ summary: 'Lookup product by product code/SKU' })
+  findByCode(@Param('code') code: string) {
+    return this.productsService.findByCode(code);
   }
 
   @Get(':id')
