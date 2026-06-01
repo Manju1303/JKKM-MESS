@@ -1,5 +1,5 @@
 'use client';
-import { Bell, Search, Sun, Moon, Menu, X } from 'lucide-react';
+import { Bell, Search, Sun, Moon, Menu, X, LogOut } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useAuthStore } from '@/store/authStore';
@@ -15,7 +15,7 @@ interface TopbarProps {
 export default function Topbar({ title, subtitle }: TopbarProps) {
   const { theme, setTheme } = useTheme();
   const { unreadCount } = useNotificationStore();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { toggleMobileSidebar } = useUIStore();
   const [search, setSearch] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -115,16 +115,27 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
           )}
         </Link>
 
-        {/* User avatar */}
+        {/* User avatar + Logout */}
         {user && (
-          <div className="flex items-center gap-2 pl-2 border-l border-border">
-            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-xs font-bold">{initials}</span>
+          <div className="flex items-center gap-1 pl-2 border-l border-border">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-xs font-bold">{initials}</span>
+              </div>
+              <div className="hidden sm:block max-w-[80px]">
+                <p className="text-xs font-semibold text-foreground leading-none truncate">{user.name.split(' ')[0]}</p>
+                <p className="text-[9px] text-muted-foreground mt-0.5 truncate">{user.role}</p>
+              </div>
             </div>
-            <div className="hidden sm:block max-w-[80px]">
-              <p className="text-xs font-semibold text-foreground leading-none truncate">{user.name.split(' ')[0]}</p>
-              <p className="text-[9px] text-muted-foreground mt-0.5 truncate">{user.role}</p>
-            </div>
+            {/* ── Logout button — always visible ── */}
+            <button
+              onClick={logout}
+              className="ml-1 p-2 rounded-lg hover:bg-red-500/10 transition-colors text-muted-foreground hover:text-red-500 flex items-center justify-center"
+              aria-label="Logout"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         )}
       </div>
