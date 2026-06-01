@@ -93,7 +93,7 @@ export class AuthService {
     await this.usersService.updateLastLogin(user.id);
     await this.logLoginActivity(user.id, user.email, 'SUCCESS', ipAddress, userAgent);
 
-    const payload = { sub: user.id, email: user.email, role: user.role.name };
+    const payload = { sub: user.id, email: user.email, role: user.role.name, name: user.name };
     return {
       access_token: this.jwtService.sign(payload),
       user: {

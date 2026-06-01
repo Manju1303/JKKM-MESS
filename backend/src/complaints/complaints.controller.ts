@@ -30,7 +30,7 @@ export class ComplaintsController {
   @Roles('STUDENT_VIEWER')
   @ApiOperation({ summary: 'Submit a new complaint (Student only)' })
   create(@Body() dto: CreateComplaintDto, @Request() req: any) {
-    return this.complaintsService.create(dto, req.user.userId);
+    return this.complaintsService.create(dto, req.user.userId, req.user.name);
   }
 
   @Post(':id/resolve')

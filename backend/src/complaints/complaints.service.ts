@@ -25,13 +25,11 @@ export class ComplaintsService {
     return complaint;
   }
 
-  async create(dto: CreateComplaintDto, studentId: number) {
-    const student = await this.prisma.user.findUnique({ where: { id: studentId } });
-    const studentName = student ? student.name : 'Unknown Student';
+  async create(dto: CreateComplaintDto, studentId: number, studentName?: string) {
     return this.prisma.complaint.create({
       data: {
         studentId,
-        studentName,
+        studentName: studentName || 'Unknown Student',
         title: dto.title,
         description: dto.description,
         status: 'PENDING',
