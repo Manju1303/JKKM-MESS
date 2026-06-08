@@ -100,12 +100,12 @@ npm run start:dev
 
 ---
 
-## 📡 Live Deployment (Railway)
+## 📡 Live Deployment (Koyeb)
 
 * **Deployment URL:** `https://api-mess.arockiamedicalcentre.in`
-* **Custom Start Command:** `node dist/src/main` (triggered automatically via `railway.toml`).
-* **Port Mapping:** Exposes port `3001`.
-* **Important:** Ensure the variables in the Railway console **do not have double quotes (`"`)**, as Prisma CLI reads them literally and will fail to resolve the hostname during migrations.
+* **Custom Start Command:** `npx prisma migrate deploy && node dist/src/main` (runs migrations automatically before launching backend).
+* **Port Mapping:** Exposes port `3001` (Koyeb automatically routes public HTTPS traffic to it).
+* **Important:** Set the **Docker Context Directory** to `backend` and **Dockerfile Path** to `Dockerfile` when deploying on Koyeb. Ensure that environment variables in the Koyeb dashboard are set without quotes.
 
 ### **⚠️ Institutional/College Network DNS Blocks**
 Many educational institutes (such as JKKM College networks) block database endpoints (`*.neon.tech`) and container hosts (`*.up.railway.app`) over standard IPv6. 

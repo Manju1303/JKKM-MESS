@@ -4,7 +4,7 @@ import { CreateComplaintDto } from './dto/create-complaint.dto';
 
 @Injectable()
 export class ComplaintsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async findAll() {
     return this.prisma.complaint.findMany({

@@ -34,27 +34,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     });
   }
 
-  private keepAliveInterval: NodeJS.Timeout;
-
   async onModuleInit() {
     await this.$connect();
     console.log('✅ Prisma connected to PostgreSQL');
-
-    // Periodically query database to prevent Neon DB from suspending (cold-start latency)
-    this.keepAliveInterval = setInterval(() => {
-      this.$queryRaw`SELECT 1`
-        .catch((err) => console.error('DB Keep-Alive ping failed:', err.message));
-    }, 4 * 60 * 1000);
-
-    if (this.keepAliveInterval && this.keepAliveInterval.unref) {
-      this.keepAliveInterval.unref();
-    }
   }
 
   async onModuleDestroy() {
-    if (this.keepAliveInterval) {
-      clearInterval(this.keepAliveInterval);
-    }
     await this.$disconnect();
   }
 }
