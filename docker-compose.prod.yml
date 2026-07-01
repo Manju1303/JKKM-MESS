@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: jkkm-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: jkkm_mess_erp
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    networks:
+      - erp-network
+
+  # 2. Redis Caching & Socket Broker
+  redis:
+    image: redis:7-alpine
+    container_name: jkkm-redis-prod
+    restart: always
+    expose:
+      - "6379"
+    volumes:
+      - redis_prod_data:/data
+    networks:
+      - erp-network
+
+  # 3. NestJS Backend Application
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: jkkm-backend-prod
+    restart: always
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-password}@postgres:5432/jkkm_mess_erp?schema=public
+      PORT: 3001
+      JWT_SECRET: ${JWT_SECRET:-super-secret-key-for-production}
+      JWT_EXPIRES_IN: 7d
+      FRONTEND_URL: ${FRONTEND_URL:-https://erp.arockiamedicalcentre.in}
+      NODE_ENV: production
+    expose:
+      - "3001"
+    networks:
+      - erp-network
+
+  # 4. Nginx Reverse Proxy (Handles SSL & routes requests)
+  nginx:
+    image: nginx:alpine
+    container_name: jkkm-nginx-prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - backend
+    networks:
+      - erp-network
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
+
+networks:
+  erp-network:
+    driver: bridge
