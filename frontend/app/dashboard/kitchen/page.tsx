@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { kitchenAPI, productsAPI } from '@/lib/api';
+import { kitchenAPI, productsAPI, inventoryAPI } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
-import { Plus, Search, ChefHat, Calendar, Users, Percent, Clock, AlertCircle } from 'lucide-react';
+import { Plus, Search, ChefHat, Calendar, Users, Percent, Clock, AlertCircle, CheckCircle2, TrendingUp, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 interface KitchenIssue {
   id: number;
@@ -27,6 +28,8 @@ interface Product {
 export default function KitchenPage() {
   const [issues, setIssues] = useState<KitchenIssue[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [costTrends, setCostTrends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [mealFilter, setMealFilter] = useState('all');
@@ -35,12 +38,14 @@ export default function KitchenPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     productId: '',
+    batchNumber: '',
     quantity: '',
     meal: 'LUNCH',
     headcount: '',
     notes: '',
     issueDate: new Date().toISOString().split('T')[0],
   });
+  const [fefoWarning, setFefoWarning] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -51,16 +56,39 @@ export default function KitchenPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [issuesRes, productsRes] = await Promise.all([
+      const [issuesRes, productsRes, inventoryRes, trendsRes] = await Promise.all([
         kitchenAPI.getTodayIssues(),
         productsAPI.getAll(),
+        inventoryAPI.getAll(),
+        kitchenAPI.getCostPerMeal(15),
       ]);
       setIssues(issuesRes.data || []);
       setProducts(productsRes.data || []);
+      setInventoryItems(inventoryRes.data || []);
+      if (trendsRes.data) {
+        setCostTrends(trendsRes.data);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkFEFOCompliance = async (pId: string, bNum: string) => {
+    if (!pId || !bNum) {
+      setFefoWarning(null);
+      return;
+    }
+    try {
+      const res = await kitchenAPI.checkFefo(Number(pId), bNum);
+      if (res.data && res.data.isOldest === false) {
+        setFefoWarning(res.data.warning || `FEFO Alert: Batch #${bNum} is not the oldest expiring batch!`);
+      } else {
+        setFefoWarning(null);
+      }
+    } catch {
+      setFefoWarning(null);
     }
   };
 
@@ -76,6 +104,7 @@ export default function KitchenPage() {
     try {
       await kitchenAPI.issueStock({
         productId: Number(form.productId),
+        batchNumber: form.batchNumber || undefined,
         quantity: Number(form.quantity),
         unit: selectedProd?.unit || 'KG',
         meal: form.meal,
@@ -86,12 +115,14 @@ export default function KitchenPage() {
       setShowForm(false);
       setForm({
         productId: '',
+        batchNumber: '',
         quantity: '',
         meal: 'LUNCH',
         headcount: '',
         notes: '',
         issueDate: new Date().toISOString().split('T')[0],
       });
+      setFefoWarning(null);
       fetchData();
     } catch (err: any) {
       setSubmitError(err.response?.data?.message || 'Error issuing stock. Please check inventory levels.');
@@ -145,6 +176,46 @@ export default function KitchenPage() {
           </div>
         </div>
       </section>
+
+      {/* Cost-per-Meal Analytics Trend Chart */}
+      {costTrends.length > 0 && (
+        <section aria-label="Cost per Meal Trend Analytics" className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-500" />
+                Cost per Meal Analytics (FEFO pricing)
+              </h3>
+              <p className="text-[11px] text-muted-foreground">Historical trend analysis of recipe costs per student (INR)</p>
+            </div>
+            <div className="flex items-center gap-4 text-xs font-semibold text-muted-foreground mr-1">
+              <span className="flex items-center gap-1"><DollarSign className="w-3.5 h-3.5 text-primary" /> Average Per Student</span>
+            </div>
+          </div>
+          <div className="w-full h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={costTrends}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    borderColor: 'hsl(var(--border))',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                  }}
+                  itemStyle={{ color: 'hsl(var(--foreground))' }}
+                />
+                <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '5px' }} />
+                <Line type="monotone" dataKey="Breakfast" stroke="#3b82f6" strokeWidth={2} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="Lunch" stroke="#f97316" strokeWidth={2} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="Dinner" stroke="#10b981" strokeWidth={2} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      )}
 
       {/* Main Actions Panel */}
       <section aria-label="Consumption Filters" className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between bg-card border border-border rounded-xl p-4">
@@ -202,7 +273,11 @@ export default function KitchenPage() {
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Product *</label>
                 <select
                   value={form.productId}
-                  onChange={(e) => setForm({ ...form, productId: e.target.value })}
+                  onChange={(e) => {
+                    const nextPId = e.target.value;
+                    setForm({ ...form, productId: nextPId, batchNumber: '' });
+                    setFefoWarning(null);
+                  }}
                   className="w-full px-3 py-2 text-sm rounded-lg bg-muted border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   required
                 >
@@ -212,6 +287,42 @@ export default function KitchenPage() {
                   ))}
                 </select>
               </div>
+
+              {form.productId && (
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Stock Batch (FEFO Verification) *</label>
+                  {inventoryItems.filter(item => item.productId === Number(form.productId) && item.quantity > 0 && !item.isExpired).length === 0 ? (
+                    <div className="text-xs text-amber-500 py-1 font-semibold">⚠️ No active stock batches found in store.</div>
+                  ) : (
+                    <select
+                      value={form.batchNumber}
+                      onChange={(e) => {
+                        const bVal = e.target.value;
+                        setForm({ ...form, batchNumber: bVal });
+                        checkFEFOCompliance(form.productId, bVal);
+                      }}
+                      className="w-full px-3 py-2 text-sm rounded-lg bg-muted border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+                      required
+                    >
+                      <option value="">Choose a batch...</option>
+                      {inventoryItems
+                        .filter(item => item.productId === Number(form.productId) && item.quantity > 0 && !item.isExpired)
+                        .map(b => (
+                          <option key={b.id} value={b.batchNumber || ''}>
+                            Batch {b.batchNumber || 'N/A'} - Exp: {b.expiryDate ? new Date(b.expiryDate).toLocaleDateString() : 'None'} ({b.quantity} {b.unit} left)
+                          </option>
+                        ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
+              {fefoWarning && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-orange-400 text-xs rounded-lg flex items-start gap-2 animate-pulse font-semibold">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{fefoWarning}</span>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>

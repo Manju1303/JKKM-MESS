@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { inventoryAPI } from '@/lib/api';
 import { formatCurrency, formatDate, getDaysUntilExpiry, getStockStatus } from '@/lib/utils';
 import {
   Search, Filter, Plus, AlertTriangle, Clock, Package,
-  TrendingDown, BarChart3, RefreshCw,
+  TrendingDown, BarChart3, RefreshCw, Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -25,9 +26,9 @@ interface InventoryItem {
 const statusBadge = (status: string) => {
   const styles: Record<string, string> = {
     critical: 'bg-red-500/15 text-red-500 border-red-500/30',
-    low:      'bg-amber-500/15 text-amber-500 border-amber-500/30',
-    normal:   'bg-blue-500/15 text-blue-500 border-blue-500/30',
-    high:     'bg-green-500/15 text-green-500 border-green-500/30',
+    low: 'bg-amber-500/15 text-amber-500 border-amber-500/30',
+    normal: 'bg-blue-500/15 text-blue-500 border-blue-500/30',
+    high: 'bg-green-500/15 text-green-500 border-green-500/30',
   };
   return (
     <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium border', styles[status] || styles.normal)}>
@@ -37,11 +38,41 @@ const statusBadge = (status: string) => {
 };
 
 export default function InventoryPage() {
-  const [items, setItems]       = useState<InventoryItem[]>([]);
-  const [search, setSearch]     = useState('');
-  const [filter, setFilter]     = useState('all');
-  const [loading, setLoading]   = useState(true);
+  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const downloadCSV = () => {
+    const headers = ['Product Name', 'Category', 'Quantity', 'Unit', 'Min Level', 'Status', 'Expiry Date', 'Total Value (INR)', 'Location'];
+    const rows = filtered.map(item => {
+      const status = getStockStatus(item.quantity, item.minStockLevel);
+      const val = item.quantity * item.purchasePrice;
+      const expiry = item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('en-IN') : 'N/A';
+      return [
+        `"${item.productName.replace(/"/g, '""')}"`,
+        `"${(item.categoryName || '').replace(/"/g, '""')}"`,
+        item.quantity,
+        `"${item.unit}"`,
+        item.minStockLevel,
+        `"${status}"`,
+        `"${expiry}"`,
+        val.toFixed(2),
+        `"${(item.location || '').replace(/"/g, '""')}"`
+      ];
+    });
+
+    const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `inventory_status_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -64,7 +95,7 @@ export default function InventoryPage() {
       item.productName.toLowerCase().includes(search.toLowerCase()) ||
       item.categoryName?.toLowerCase().includes(search.toLowerCase());
     const status = getStockStatus(item.quantity, item.minStockLevel);
-    if (filter === 'low')     return matchesSearch && (status === 'low' || status === 'critical');
+    if (filter === 'low') return matchesSearch && (status === 'low' || status === 'critical');
     if (filter === 'expiring') {
       const days = item.expiryDate ? getDaysUntilExpiry(item.expiryDate) : Infinity;
       return matchesSearch && days <= 7;
@@ -73,7 +104,7 @@ export default function InventoryPage() {
   });
 
   const totalValue = items.reduce((sum, i) => sum + (i.quantity * i.purchasePrice), 0);
-  const lowCount   = items.filter(i => {
+  const lowCount = items.filter(i => {
     const s = getStockStatus(i.quantity, i.minStockLevel);
     return s === 'low' || s === 'critical';
   }).length;
@@ -86,9 +117,9 @@ export default function InventoryPage() {
       {/* Summary cards */}
       <section aria-label="Inventory Summary" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Items', value: items.length, icon: Package,       color: 'text-primary',     bg: 'bg-primary/10' },
-          { label: 'Low Stock',   value: lowCount,     icon: AlertTriangle, color: 'text-amber-500',   bg: 'bg-amber-500/10' },
-          { label: 'Expiring',    value: expiringCount, icon: Clock,        color: 'text-red-500',     bg: 'bg-red-500/10' },
+          { label: 'Total Items', value: items.length, icon: Package, color: 'text-primary', bg: 'bg-primary/10' },
+          { label: 'Low Stock', value: lowCount, icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+          { label: 'Expiring', value: expiringCount, icon: Clock, color: 'text-red-500', bg: 'bg-red-500/10' },
           { label: 'Total Value', value: formatCurrency(totalValue), icon: BarChart3, color: 'text-green-500', bg: 'bg-green-500/10' },
         ].map(({ label, value, icon: Icon, color, bg }) => (
           <div key={label} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
@@ -140,9 +171,18 @@ export default function InventoryPage() {
             >
               <RefreshCw className={cn('w-4 h-4', refreshing && 'animate-spin')} />
             </button>
-            <button className="px-3 py-2 rounded-lg bg-primary text-white text-xs font-medium flex items-center gap-1.5 hover:bg-primary/90 transition-all">
-              <Plus className="w-4 h-4" /> Add Stock
+            <button
+              onClick={downloadCSV}
+              className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold flex items-center gap-1.5 hover:bg-emerald-700 transition-all font-sans"
+            >
+              <Download className="w-4 h-4" /> Export CSV
             </button>
+            <Link
+              href="/dashboard/barcode"
+              className="px-3 py-2 rounded-lg bg-primary text-white text-xs font-semibold flex items-center gap-1.5 hover:bg-primary/95 transition-all font-sans"
+            >
+              <Plus className="w-4 h-4" /> Add Stock
+            </Link>
           </div>
         </div>
       </div>

@@ -11,7 +11,7 @@ import { CreateWastageDto } from './dto/create-wastage.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('wastage')
 export class WastageController {
-  constructor(private wastageService: WastageService) {}
+  constructor(private wastageService: WastageService) { }
 
   @Get()
   @ApiOperation({ summary: 'Get all wastage records' })
@@ -32,7 +32,7 @@ export class WastageController {
   }
 
   @Post()
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'KITCHEN_STAFF')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
   @ApiOperation({ summary: 'Report wastage' })
   create(@Body() dto: CreateWastageDto) {
     return this.wastageService.create(dto);

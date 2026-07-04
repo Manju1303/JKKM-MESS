@@ -18,30 +18,29 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
+    const cleanedEmail = form.email.toLowerCase().trim();
+
     // Frontend strict institutional email domain validation
-    if (!form.email.toLowerCase().endsWith('@jkkm.edu.in')) {
+    if (!cleanedEmail.endsWith('@jkkm.edu.in')) {
       setError('Access restricted to JKKM institutional accounts only.');
       setLoading(false);
       return;
     }
 
     try {
-      const res = await authAPI.login(form);
+      const res = await authAPI.login({
+        email: cleanedEmail,
+        password: form.password
+      });
       setAuth(res.data.user, res.data.access_token);
-      
+
       const userRole = res.data.user.role;
       if (userRole === 'SUPER_ADMIN') {
         router.push('/dashboard/users');
-      } else if (userRole === 'STORE_KEEPER') {
-        router.push('/dashboard/inventory');
-      } else if (userRole === 'KITCHEN_STAFF') {
-        router.push('/dashboard/kitchen');
       } else if (userRole === 'HOSTEL_WARDEN') {
         router.push('/dashboard/attendance');
-      } else if (userRole === 'STUDENT_VIEWER') {
-        router.push('/dashboard/menu');
-      } else if (userRole === 'ACCOUNTANT') {
-        router.push('/dashboard/purchases');
+      } else if (userRole === 'MESS_MANAGER') {
+        router.push('/dashboard/inventory');
       } else {
         router.push('/dashboard');
       }

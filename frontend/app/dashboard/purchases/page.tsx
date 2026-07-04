@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { purchasesAPI } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Plus, Search, CheckCircle, Clock, XCircle, ShoppingCart, IndianRupee } from 'lucide-react';
+import { Plus, Search, CheckCircle, Clock, XCircle, ShoppingCart, IndianRupee, Sparkles, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Purchase {
@@ -18,24 +18,60 @@ interface Purchase {
 }
 
 const statusConfig = {
-  pending:  { label: 'Pending',  icon: Clock,         color: 'text-amber-500',  bg: 'bg-amber-500/15 border-amber-500/30' },
-  approved: { label: 'Approved', icon: CheckCircle,   color: 'text-blue-500',   bg: 'bg-blue-500/15 border-blue-500/30' },
-  received: { label: 'Received', icon: CheckCircle,   color: 'text-green-500',  bg: 'bg-green-500/15 border-green-500/30' },
-  rejected: { label: 'Rejected', icon: XCircle,       color: 'text-red-500',    bg: 'bg-red-500/15 border-red-500/30' },
+  pending: { label: 'Pending', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/15 border-amber-500/30' },
+  approved: { label: 'Approved', icon: CheckCircle, color: 'text-blue-500', bg: 'bg-blue-500/15 border-blue-500/30' },
+  received: { label: 'Received', icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-500/15 border-green-500/30' },
+  rejected: { label: 'Rejected', icon: XCircle, color: 'text-red-500', bg: 'bg-red-500/15 border-red-500/30' },
 };
 
 export default function PurchasesPage() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [search, setSearch]       = useState('');
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [loading, setLoading]     = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [autoDraftLoading, setAutoDraftLoading] = useState(false);
+  const [autoDraftMsg, setAutoDraftMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const fetchPurchases = async () => {
+    try {
+      setLoading(true);
+      const res = await purchasesAPI.getAll();
+      setPurchases(res.data || []);
+    } catch { } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    purchasesAPI.getAll()
-      .then(res => setPurchases(res.data || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    fetchPurchases();
   }, []);
+
+  const handleAutoDraft = async () => {
+    setAutoDraftLoading(true);
+    setAutoDraftMsg(null);
+    try {
+      const res = await purchasesAPI.autoDraftPO();
+      if (res.data && res.data.success) {
+        setAutoDraftMsg({
+          type: 'success',
+          text: `Replenishment Complete: Generated ${res.data.createdCount} draft purchase orders for out-of-stock items.`
+        });
+        fetchPurchases();
+      } else {
+        setAutoDraftMsg({
+          type: 'success',
+          text: res.data?.message || 'Current stock levels are sufficient. No draft POs needed.'
+        });
+      }
+    } catch (err: any) {
+      setAutoDraftMsg({
+        type: 'error',
+        text: err.response?.data?.message || 'Failed to auto-draft purchase orders.'
+      });
+    } finally {
+      setAutoDraftLoading(false);
+    }
+  };
 
   const filtered = purchases.filter(p => {
     const matchSearch =
@@ -45,15 +81,15 @@ export default function PurchasesPage() {
     return matchSearch && matchStatus;
   });
 
-  const totalSpend     = purchases.reduce((s, p) => s + p.totalAmount, 0);
-  const pendingCount   = purchases.filter(p => p.status === 'pending').length;
-  const approvedCount  = purchases.filter(p => p.status === 'approved').length;
+  const totalSpend = purchases.reduce((s, p) => s + p.totalAmount, 0);
+  const pendingCount = purchases.filter(p => p.status === 'pending').length;
+  const approvedCount = purchases.filter(p => p.status === 'approved').length;
 
   const handleApprove = async (id: number) => {
     try {
       await purchasesAPI.approve(id);
       setPurchases(prev => prev.map(p => p.id === id ? { ...p, status: 'approved' } : p));
-    } catch {}
+    } catch { }
   };
 
   return (
@@ -76,6 +112,17 @@ export default function PurchasesPage() {
           </div>
         ))}
       </div>
+
+      {/* Auto Draft Feedback Banner */}
+      {autoDraftMsg && (
+        <div className={cn(
+          "p-4 rounded-xl flex items-start gap-2.5 text-sm border animate-in",
+          autoDraftMsg.type === 'success' ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"
+        )}>
+          {autoDraftMsg.type === 'success' ? <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" /> : <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />}
+          <span>{autoDraftMsg.text}</span>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="bg-card border border-border rounded-xl p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
@@ -104,6 +151,16 @@ export default function PurchasesPage() {
               className="w-full pl-9 pr-4 py-2 text-sm rounded-lg bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
+
+          <button
+            onClick={handleAutoDraft}
+            disabled={autoDraftLoading}
+            className="px-3 py-2 rounded-lg bg-[hsl(28,95%,15%)] text-[hsl(28,95%,50%)] border border-[hsl(28,95%,25%)] hover:bg-[hsl(28,95%,20%)] text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50"
+          >
+            <Sparkles className="w-4 h-4" />
+            {autoDraftLoading ? 'Drafting...' : 'AI Auto-Draft POs'}
+          </button>
+
           <button className="px-3 py-2 rounded-lg bg-primary text-white text-xs font-medium flex items-center gap-1.5 hover:bg-primary/90 transition-all">
             <Plus className="w-4 h-4" /> New Order
           </button>

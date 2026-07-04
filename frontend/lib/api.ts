@@ -73,6 +73,7 @@ export const purchasesAPI = {
   getMonthlyExpenses: () => api.get('/purchases/expenses/monthly'),
   create: (data: unknown) => api.post('/purchases', data),
   approve: (id: number) => api.post(`/purchases/${id}/approve`),
+  autoDraftPO: () => api.get('/purchases/auto-draft'),
 };
 
 export const kitchenAPI = {
@@ -80,6 +81,8 @@ export const kitchenAPI = {
   getTodayIssues: () => api.get('/kitchen/today'),
   getHistory: (days?: number) => api.get(`/kitchen/history${days ? `?days=${days}` : ''}`),
   getAnalytics: () => api.get('/kitchen/analytics'),
+  checkFefo: (productId: number, batchNumber: string) => api.get(`/kitchen/fefo-check?productId=${productId}&batchNumber=${batchNumber}`),
+  getCostPerMeal: (days?: number) => api.get(`/kitchen/cost-per-meal${days ? `?days=${days}` : ''}`),
 };
 
 export const consumptionAPI = {
@@ -128,6 +131,7 @@ export const attendanceAPI = {
   getWeeklyTrend: () => api.get('/attendance/weekly-trend'),
   create: (data: unknown) => api.post('/attendance', data),
   update: (id: number, data: unknown) => api.put(`/attendance/${id}`, data),
+  registerScan: (studentBarcode: string, hostel?: string) => api.post('/attendance/scan', { studentBarcode, hostel }),
 };
 
 export const menuAPI = {

@@ -11,7 +11,7 @@ import { CreateInventoryDto } from './dto/create-inventory.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('inventory')
 export class InventoryController {
-  constructor(private inventoryService: InventoryService) {}
+  constructor(private inventoryService: InventoryService) { }
 
   @Get()
   @ApiOperation({ summary: 'Get all inventory items with product details' })
@@ -52,7 +52,7 @@ export class InventoryController {
   }
 
   @Post()
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
   @ApiOperation({ summary: 'Add stock to inventory (manual entry)' })
   addStock(@Body() dto: CreateInventoryDto) {
     return this.inventoryService.addStock(dto);

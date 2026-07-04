@@ -308,3 +308,16 @@ model Complaint {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
+
+model BiometricScan {
+  id         Int      @id @default(autoincrement())
+  studentId  String
+  timestamp  DateTime @default(now())
+  mealType   String   // BREAKFAST, LUNCH, DINNER
+  deviceId   String?
+  createdAt  DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([studentId, timestamp])
+}
+

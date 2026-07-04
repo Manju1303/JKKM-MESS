@@ -36,7 +36,7 @@ const CustomTooltip = ({ active, payload, label }: {
 const transformAttendanceTrend = (records: any[]) => {
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const dayMap: Record<string, { day: string; Breakfast: number; Lunch: number; Dinner: number; Snack: number; breakfast: number; lunch: number; dinner: number; snack: number }> = {};
-  
+
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
@@ -101,17 +101,17 @@ export default function DashboardPage() {
     const fetchData = async () => {
       try {
         const [statsRes, lowStockRes, expiringRes, trendRes, expensesRes, invRes,
-               attendanceStatsRes, complaintsRes, menuRes] = await Promise.allSettled([
-          inventoryAPI.getStats(),
-          inventoryAPI.getLowStock(),
-          inventoryAPI.getExpiringSoon(7),
-          attendanceAPI.getWeeklyTrend(),
-          purchasesAPI.getMonthlyExpenses(),
-          inventoryAPI.getAll(),
-          attendanceAPI.getStats(),
-          complaintsAPI.getAll(),
-          menuAPI.getAll(),
-        ]);
+          attendanceStatsRes, complaintsRes, menuRes] = await Promise.allSettled([
+            inventoryAPI.getStats(),
+            inventoryAPI.getLowStock(),
+            inventoryAPI.getExpiringSoon(7),
+            attendanceAPI.getWeeklyTrend(),
+            purchasesAPI.getMonthlyExpenses(),
+            inventoryAPI.getAll(),
+            attendanceAPI.getStats(),
+            complaintsAPI.getAll(),
+            menuAPI.getAll(),
+          ]);
 
         if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
         if (lowStockRes.status === 'fulfilled') setLowStock(lowStockRes.value.data);
@@ -225,7 +225,7 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatsCard title="Total Inventory Items" value={totalItems} subtitle="Seeded items in system" icon={<Package className="w-5 h-5" />} variant="primary" isLoading={loading} />
-            <StatsCard title="System Roles Active" value={7} subtitle="Role Profiles configured" icon={<ShieldAlert className="w-5 h-5" />} variant="warning" isLoading={loading} />
+            <StatsCard title="System Roles Active" value={3} subtitle="Role Profiles configured" icon={<ShieldAlert className="w-5 h-5" />} variant="warning" isLoading={loading} />
             <StatsCard title="Active Low Stock Alerts" value={lowStockCount} subtitle="Items requiring reorder" icon={<AlertTriangle className="w-5 h-5" />} variant="danger" isLoading={loading} />
             <StatsCard title="Total Valuation" value={totalValue} subtitle="Estimated total stock value" icon={<IndianRupee className="w-5 h-5" />} variant="success" isLoading={loading} />
           </section>
@@ -251,12 +251,11 @@ export default function DashboardPage() {
               <h3 className="font-bold text-foreground text-md flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary" /> System Accounts
               </h3>
-              <p className="text-sm text-muted-foreground">Standard seeded roles ready for deployment testing:</p>
+              <p className="text-sm text-muted-foreground">Standard active roles ready for deployment testing:</p>
               <ul className="text-xs space-y-1.5 text-muted-foreground bg-muted/50 p-3 rounded-lg border border-border">
+                <li>• **Super Admin**: `admin@jkkm.edu.in`</li>
                 <li>• **Mess Manager**: `messmanager@jkkm.edu.in`</li>
-                <li>• **Storekeeper**: `storekeeper@jkkm.edu.in`</li>
-                <li>• **Kitchen Staff**: `kitchen@jkkm.edu.in`</li>
-                <li>• **Accountant**: `accounts@jkkm.edu.in`</li>
+                <li>• **Hostel Warden**: `warden@jkkm.edu.in`</li>
               </ul>
             </div>
           </section>
@@ -279,12 +278,12 @@ export default function DashboardPage() {
                 <span>Stock Level Trends</span>
                 <TrendingDown className="w-4 h-4 text-muted-foreground" />
               </h3>
-               <ResponsiveContainer width="100%" height={240}>
+              <ResponsiveContainer width="100%" height={240}>
                 <AreaChart data={stockTrend}>
                   <defs>
                     <linearGradient id="riceGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="hsl(224,76%,58%)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(224,76%,58%)" stopOpacity={0}   />
+                      <stop offset="5%" stopColor="hsl(224,76%,58%)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(224,76%,58%)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -297,14 +296,23 @@ export default function DashboardPage() {
             </div>
             <div className="bg-card border border-border p-6 rounded-xl flex flex-col justify-between">
               <div>
-                <h3 className="font-bold text-foreground text-md mb-2">Manager Quick Actions</h3>
+                <h3 className="font-bold text-foreground text-md mb-2">Manager Operations</h3>
                 <p className="text-xs text-muted-foreground mb-4">Core shortcuts for hostel mess supervisors:</p>
                 <div className="space-y-2">
+                  <Link href="/dashboard/barcode" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
+                    <Camera className="w-4 h-4 text-primary" /> Barcode Stock Entry (Groceries)
+                  </Link>
+                  <Link href="/dashboard/inventory" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
+                    <Plus className="w-4 h-4 text-primary" /> Vegetables Manual Stock Entry
+                  </Link>
+                  <Link href="/dashboard/kitchen" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
+                    <ChefHat className="w-4 h-4 text-primary" /> Daily Cooking Stock Issues
+                  </Link>
                   <Link href="/dashboard/purchases" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
                     <ClipboardList className="w-4 h-4 text-primary" /> Review Purchase Orders
                   </Link>
                   <Link href="/dashboard/reports" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
-                    <FileText className="w-4 h-4 text-primary" /> Download Valuation Reports
+                    <FileText className="w-4 h-4 text-primary" /> Stock Valuation Reports
                   </Link>
                 </div>
               </div>
@@ -318,145 +326,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 3. STORE_KEEPER DASHBOARD */}
-      {activeRole === 'STORE_KEEPER' && (
-        <div className="space-y-6">
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatsCard title="Total Stock Items" value={totalItems} subtitle="Available in store" icon={<Package className="w-5 h-5" />} variant="primary" isLoading={loading} />
-            <StatsCard title="Low Stock Warnings" value={lowStockCount} subtitle="Needs PO immediately" icon={<AlertTriangle className="w-5 h-5" />} variant="danger" isLoading={loading} />
-            <StatsCard title="Expiring Soon (7d)" value={expiringCount} subtitle="Check batch codes" icon={<Clock className="w-5 h-5" />} variant="warning" isLoading={loading} />
-          </section>
-
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 bg-card border border-border p-6 rounded-xl space-y-4">
-              <h3 className="font-bold text-foreground text-md flex items-center gap-2">
-                <ClipboardList className="w-5 h-5 text-primary" /> Storekeeper Operations
-              </h3>
-              <p className="text-sm text-muted-foreground">Manage incoming goods, update inventory levels, and process scans.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Link href="/dashboard/barcode" className="flex flex-col items-center justify-center p-4 rounded-xl bg-muted border border-border hover:bg-primary/5 hover:border-primary/30 transition-all text-center">
-                  <Camera className="w-6 h-6 text-primary mb-2" />
-                  <span className="text-sm font-semibold">Barcode Station</span>
-                </Link>
-                <Link href="/dashboard/inventory" className="flex flex-col items-center justify-center p-4 rounded-xl bg-muted border border-border hover:bg-primary/5 hover:border-primary/30 transition-all text-center">
-                  <Plus className="w-6 h-6 text-primary mb-2" />
-                  <span className="text-sm font-semibold">Add Manual Stock</span>
-                </Link>
-                <Link href="/dashboard/purchases" className="flex flex-col items-center justify-center p-4 rounded-xl bg-muted border border-border hover:bg-primary/5 hover:border-primary/30 transition-all text-center">
-                  <ClipboardList className="w-6 h-6 text-primary mb-2" />
-                  <span className="text-sm font-semibold">Create PO</span>
-                </Link>
-              </div>
-            </div>
-            <div className="bg-card border border-border p-6 rounded-xl space-y-3">
-              <h3 className="font-bold text-foreground text-md">Stock Alerts</h3>
-              <div className="space-y-2 text-xs">
-                {lowStockCount > 0 ? (
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded">
-                    ⚠️ {lowStockCount} items below limit.
-                  </div>
-                ) : (
-                  <div className="p-3 bg-green-500/10 border border-green-500/20 text-green-600 rounded">
-                    ✅ All core stock levels are normal.
-                  </div>
-                )}
-                {expiringCount > 0 && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-600 rounded">
-                    ⏰ {expiringCount} items expiring within 7 days.
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {/* 4. KITCHEN_STAFF DASHBOARD */}
-      {activeRole === 'KITCHEN_STAFF' && (
-        <div className="space-y-6">
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatsCard title="Expiring Soon (7d)" value={expiringCount} subtitle="Ingredients to dispatch first" icon={<Clock className="w-5 h-5" />} variant="warning" isLoading={loading} />
-            <StatsCard title="Pending Kitchen Issues" value={0} subtitle="Requested stock logs" icon={<ChefHat className="w-5 h-5" />} variant="primary" isLoading={loading} />
-            <StatsCard title="Daily Meals Configured" value={4} subtitle="Breakfast, Lunch, Snacks, Dinner" icon={<Calendar className="w-5 h-5" />} variant="success" isLoading={loading} />
-          </section>
-
-          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-card border border-border p-6 rounded-xl">
-              <h3 className="font-semibold text-foreground text-md mb-4 flex items-center gap-2">
-                <ChefHat className="w-5 h-5 text-primary" /> Daily Headcount Attendance Trends
-              </h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={weeklyAttendance}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="day" />
-                  <YAxis />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="lunch" name="Lunch Headcount" fill="hsl(28,95%,50%)" radius={[3,3,0,0]} />
-                  <Bar dataKey="dinner" name="Dinner Headcount" fill="hsl(142,71%,45%)" radius={[3,3,0,0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="bg-card border border-border p-6 rounded-xl space-y-4">
-              <h3 className="font-bold text-foreground text-md">Kitchen Staff Actions</h3>
-              <p className="text-xs text-muted-foreground">Log ingredients used for cooking and report food waste daily:</p>
-              <div className="space-y-2">
-                <Link href="/dashboard/kitchen" className="flex items-center gap-2 p-2.5 rounded bg-primary text-white hover:bg-primary/95 text-sm font-semibold transition-all">
-                  <Plus className="w-4 h-4" /> Issue Ingredients for Meal
-                </Link>
-                <Link href="/dashboard/wastage" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
-                  <Trash2 className="w-4 h-4 text-primary" /> Log Food Wastage
-                </Link>
-                <Link href="/dashboard/menu" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
-                  <Calendar className="w-4 h-4 text-primary" /> View Today's Menu
-                </Link>
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {/* 5. ACCOUNTANT DASHBOARD */}
-      {activeRole === 'ACCOUNTANT' && (
-        <div className="space-y-6">
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatsCard title="Total Inventory Value" value={totalValue} subtitle="Estimated total stock value" icon={<IndianRupee className="w-5 h-5" />} variant="success" isLoading={loading} />
-            <StatsCard title="Pending Purchases" value={0} subtitle="Unbilled orders" icon={<ClipboardList className="w-5 h-5" />} variant="primary" isLoading={loading} />
-            <StatsCard title="Low Stock Items" value={lowStockCount} subtitle="Requires PO" icon={<AlertTriangle className="w-5 h-5" />} variant="danger" isLoading={loading} />
-          </section>
-
-          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-card border border-border p-6 rounded-xl">
-              <h3 className="font-bold text-foreground text-md mb-4 flex items-center justify-between">
-                <span>Monthly Purchase Expenses</span>
-                <IndianRupee className="w-4 h-4 text-muted-foreground" />
-              </h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={monthlyExpenses}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="month" />
-                  <YAxis tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="amount" name="Spend" fill="hsl(224,76%,58%)" radius={[4,4,0,0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="bg-card border border-border p-6 rounded-xl space-y-4">
-              <h3 className="font-bold text-foreground text-md">Financial Actions</h3>
-              <p className="text-xs text-muted-foreground">Download financial statements and review active supplier invoices:</p>
-              <div className="space-y-2">
-                <Link href="/dashboard/reports" className="flex items-center gap-2 p-2.5 rounded bg-primary text-white hover:bg-primary/95 text-sm font-semibold transition-all">
-                  <FileText className="w-4 h-4" /> Download Excel Reports
-                </Link>
-                <Link href="/dashboard/purchases" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
-                  <ClipboardList className="w-4 h-4 text-primary" /> Audit Purchase Orders
-                  </Link>
-                </div>
-              </div>
-          </section>
-        </div>
-      )}
-
-      {/* 6. HOSTEL_WARDEN DASHBOARD */}
+      {/* 3. HOSTEL_WARDEN DASHBOARD */}
       {activeRole === 'HOSTEL_WARDEN' && (
         <div className="space-y-6">
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -474,86 +344,27 @@ export default function DashboardPage() {
                   <XAxis dataKey="day" />
                   <YAxis />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="lunch" name="Lunch Attendance" fill="hsl(28,95%,50%)" radius={[3,3,0,0]} />
-                  <Bar dataKey="dinner" name="Dinner Attendance" fill="hsl(142,71%,45%)" radius={[3,3,0,0]} />
+                  <Bar dataKey="lunch" name="Lunch Attendance" fill="hsl(28,95%,50%)" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="dinner" name="Dinner Attendance" fill="hsl(142,71%,45%)" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
             <div className="bg-card border border-border p-6 rounded-xl space-y-4">
               <h3 className="font-bold text-foreground text-md">Warden Administration</h3>
-              <p className="text-xs text-muted-foreground">Manage student meal headcounts and review mess quality complaints:</p>
+              <p className="text-xs text-muted-foreground">Manage student meal headcounts, complaints, and update the menu schedule:</p>
               <div className="space-y-2">
                 <Link href="/dashboard/attendance" className="flex items-center gap-2 p-2.5 rounded bg-primary text-white hover:bg-primary/95 text-sm font-semibold transition-all">
                   <ListTodo className="w-4 h-4" /> Log Today's Headcount
                 </Link>
                 <Link href="/dashboard/complaints" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
-                  <MessageSquare className="w-4 h-4 text-primary" /> View Student Complaints
+                  <MessageSquare className="w-4 h-4 text-primary" /> Resolve Student Complaints
                   {unresolvedComplaints > 0 && (
                     <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{unresolvedComplaints}</span>
                   )}
                 </Link>
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {/* 7. STUDENT_VIEWER DASHBOARD */}
-      {activeRole === 'STUDENT_VIEWER' && (
-        <div className="space-y-6">
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Today's Menu Widget — live from API */}
-            <div className="md:col-span-2 bg-card border border-border p-6 rounded-xl space-y-4 shadow-sm">
-              <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
-                <ChefHat className="w-5 h-5 text-primary" /> Today's Mess Menu
-              </h3>
-              <p className="text-xs text-muted-foreground">Menu for {currentTime.toLocaleDateString('en-IN', { month: 'long', day: 'numeric' })}:</p>
-              {loading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                  {['Breakfast', 'Lunch', 'Dinner'].map(m => (
-                    <div key={m} className="bg-muted/55 border border-border p-4 rounded-xl animate-pulse h-24" />
-                  ))}
-                </div>
-              ) : Object.keys(todayMenu).length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                  {['BREAKFAST', 'LUNCH', 'DINNER'].map((meal) => (
-                    todayMenu[meal] ? (
-                      <div key={meal} className="bg-muted/55 border border-border p-4 rounded-xl space-y-2">
-                        <span className="text-xs font-black uppercase text-primary tracking-wider">{meal.charAt(0) + meal.slice(1).toLowerCase()}</span>
-                        <p className="text-sm font-bold text-foreground">{todayMenu[meal]}</p>
-                      </div>
-                    ) : null
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-sm text-muted-foreground bg-muted/30 rounded-xl border border-border">
-                  <ChefHat className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p>Today's menu has not been posted yet.</p>
-                  <p className="text-xs mt-1">Check back after breakfast hours.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Student Actions */}
-            <div className="bg-card border border-border p-6 rounded-xl space-y-4 shadow-sm flex flex-col justify-between">
-              <div>
-                <h3 className="font-bold text-foreground text-md flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-primary" /> Student Support
-                </h3>
-                <p className="text-xs text-muted-foreground mt-1 mb-4">Submit suggestions or file complaints regarding food quality or hygiene:</p>
-                <div className="space-y-2">
-                  <Link href="/dashboard/complaints" className="flex items-center justify-between p-3 rounded-lg bg-primary hover:bg-primary/95 text-white text-sm font-semibold transition-all">
-                    <span>Submit Complaint</span>
-                    <Plus className="w-4 h-4" />
-                  </Link>
-                  <Link href="/dashboard/menu" className="flex items-center justify-between p-3 rounded-lg bg-muted border border-border hover:bg-muted/80 text-sm font-semibold transition-all">
-                    <span>Full Weekly Menu</span>
-                    <Calendar className="w-4 h-4 text-primary" />
-                  </Link>
-                </div>
-              </div>
-              <div className="text-[10px] text-muted-foreground bg-muted p-2.5 rounded border border-border mt-4">
-                ℹ️ Wardens review all submitted complaints daily at 9:00 PM.
+                <Link href="/dashboard/menu" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
+                  <Calendar className="w-4 h-4 text-primary" /> Update Daily Menu Plan
+                </Link>
               </div>
             </div>
           </section>

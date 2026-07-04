@@ -40,10 +40,10 @@ export default function UsersPage() {
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPhone, setNewPhone] = useState('');
-  const [newRoleId, setNewRoleId] = useState(3); // default storekeeper
+  const [newRoleId, setNewRoleId] = useState(0);
 
   // Edit Form States
-  const [editRoleId, setEditRoleId] = useState(3);
+  const [editRoleId, setEditRoleId] = useState(0);
 
   // Status message
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -58,10 +58,13 @@ export default function UsersPage() {
       if (usersRes.data && usersRes.data.length > 0) setUsers(usersRes.data);
       if (rolesRes.data && rolesRes.data.length > 0) {
         setRoles(rolesRes.data);
-        const storekeeperRole = rolesRes.data.find((r: any) => r.name === 'Storekeeper');
-        if (storekeeperRole) {
-          setNewRoleId(storekeeperRole.id);
-          setEditRoleId(storekeeperRole.id);
+        const defaultRole = rolesRes.data.find((r: any) => r.name === 'MESS_MANAGER' || r.name === 'Mess Manager');
+        if (defaultRole) {
+          setNewRoleId(defaultRole.id);
+          setEditRoleId(defaultRole.id);
+        } else {
+          setNewRoleId(rolesRes.data[0].id);
+          setEditRoleId(rolesRes.data[0].id);
         }
       }
     } catch (e) {
@@ -107,7 +110,8 @@ export default function UsersPage() {
     setNewEmail('');
     setNewPassword('');
     setNewPhone('');
-    setNewRoleId(3);
+    const defaultRole = roles.find((r: any) => r.name === 'MESS_MANAGER' || r.name === 'Mess Manager');
+    setNewRoleId(defaultRole?.id || roles[0]?.id || 0);
   };
 
   const handleOpenEdit = (user: UserItem) => {
@@ -159,7 +163,7 @@ export default function UsersPage() {
   // Filter
   const filteredUsers = users.filter(u => {
     const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) ||
-                        u.email.toLowerCase().includes(search.toLowerCase());
+      u.email.toLowerCase().includes(search.toLowerCase());
     const matchRole = roleFilter === 'ALL' || u.role.name === roleFilter;
     return matchSearch && matchRole;
   });

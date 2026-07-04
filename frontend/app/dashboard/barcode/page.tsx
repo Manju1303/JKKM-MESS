@@ -12,6 +12,7 @@ export default function BarcodePage() {
   const [product, setProduct] = useState<any>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [allProducts, setAllProducts] = useState<any[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Stock form state
@@ -33,9 +34,12 @@ export default function BarcodePage() {
   // Raw MediaStream — so we can stop tracks on cleanup
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Focus barcode input on mount
+  // Focus barcode input on mount & load products catalog
   useEffect(() => {
     inputRef.current?.focus();
+    productsAPI.getAll()
+      .then(res => setAllProducts(res.data || []))
+      .catch(err => console.error('Failed to load products for datalist:', err));
   }, []);
 
   // Cleanup camera on unmount
@@ -180,7 +184,7 @@ export default function BarcodePage() {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: facing },   // 'environment' = rear, 'user' = front
-            width:  { ideal: 1920 },
+            width: { ideal: 1920 },
             height: { ideal: 1080 },
           },
         });
@@ -194,7 +198,7 @@ export default function BarcodePage() {
 
       // ── Step 2: Attach stream to video for preview ──────────────────────────
       videoRef.current.srcObject = stream;
-      await videoRef.current.play().catch(() => {});
+      await videoRef.current.play().catch(() => { });
 
       // ── Step 3: Start continuous ZXing decode loop ──────────────────────────
       // decodeFromStream() returns IScannerControls with a .stop() method.
@@ -246,7 +250,7 @@ export default function BarcodePage() {
           streamRef.current = fallbackStream;
           if (videoRef.current) {
             videoRef.current.srcObject = fallbackStream;
-            await videoRef.current.play().catch(() => {});
+            await videoRef.current.play().catch(() => { });
           }
           const { BrowserMultiFormatReader } = await import('@zxing/browser');
           const reader2 = new BrowserMultiFormatReader();
@@ -331,8 +335,9 @@ export default function BarcodePage() {
               <input
                 ref={inputRef}
                 id="barcode-input"
+                list="products-datalist"
                 type="text"
-                placeholder="Scan or type here…"
+                placeholder="Scan, type or search product name…"
                 value={barcode}
                 onChange={e => setBarcode(e.target.value)}
                 className="w-full px-3 py-2 text-sm rounded-lg bg-muted border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-mono"
@@ -340,8 +345,15 @@ export default function BarcodePage() {
                 autoCorrect="off"
                 spellCheck={false}
               />
+              <datalist id="products-datalist">
+                {allProducts.map(p => (
+                  <option key={p.id} value={p.barcode || p.code}>
+                    {p.name} ({p.type} - {p.unit})
+                  </option>
+                ))}
+              </datalist>
               <p className="text-[10px] text-muted-foreground mt-1">
-                Matches product barcode <strong>or</strong> product code (SKU)
+                Matches product barcode <strong>or</strong> product code/name
               </p>
             </div>
             <button

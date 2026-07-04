@@ -13,7 +13,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('menu')
 export class MenuController {
-  constructor(private readonly menuService: MenuService) {}
+  constructor(private readonly menuService: MenuService) { }
 
   @Get()
   @ApiOperation({ summary: 'Get all menu items or filter by date range' })
@@ -34,15 +34,15 @@ export class MenuController {
   }
 
   @Post()
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
-  @ApiOperation({ summary: 'Create a new menu plan (Manager/Admin only)' })
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN')
+  @ApiOperation({ summary: 'Create a new menu plan (Warden/Manager/Admin)' })
   create(@Body() dto: CreateMenuDto) {
     return this.menuService.create(dto);
   }
 
   @Put(':id')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
-  @ApiOperation({ summary: 'Update an existing menu plan (Manager/Admin only)' })
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN')
+  @ApiOperation({ summary: 'Update an existing menu plan (Warden/Manager/Admin)' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateMenuDto,
@@ -51,8 +51,8 @@ export class MenuController {
   }
 
   @Delete(':id')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
-  @ApiOperation({ summary: 'Delete a menu plan (Manager/Admin only)' })
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN')
+  @ApiOperation({ summary: 'Delete a menu plan (Warden/Manager/Admin)' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.menuService.remove(id);
   }

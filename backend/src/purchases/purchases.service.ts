@@ -11,7 +11,7 @@ export class PurchasesService {
     private inventoryService: InventoryService,
     private appGateway: AppGateway,
     private emailService: EmailService,
-  ) {}
+  ) { }
 
   async findAll() {
     return this.prisma.purchase.findMany({
@@ -85,7 +85,18 @@ export class PurchasesService {
       purchase.purchaseNumber,
       supplierName,
       purchase.netAmount,
-    ).catch(() => {});
+    ).catch(() => { });
+
+    // Write persistent notification to database
+    await this.prisma.notification.create({
+      data: {
+        title: 'New Purchase Order',
+        message: `Purchase order ${purchase.purchaseNumber} has been created for ${supplierName} for amount INR ${purchase.netAmount.toFixed(2)}. Pending approval.`,
+        type: 'PURCHASE',
+        severity: 'INFO',
+        isRead: false
+      }
+    }).catch(() => { });
 
     return purchase;
   }
@@ -120,6 +131,18 @@ export class PurchasesService {
           expiryDate: item.expiryDate?.toISOString(),
         }, tx);
       }
+
+      // Write persistent notification to database
+      await tx.notification.create({
+        data: {
+          title: 'Purchase Approved',
+          message: `Purchase order ${purchase.purchaseNumber} has been approved. Line items have been auto-added to inventory.`,
+          type: 'PURCHASE',
+          severity: 'INFO',
+          isRead: false
+        }
+      }).catch(() => { });
+
       return purchase;
     });
   }
@@ -136,6 +159,18 @@ export class PurchasesService {
         'Purchase order is not in PENDING status or does not exist. Cannot reject.',
       );
     }
+
+    // Write persistent notification to database
+    await this.prisma.notification.create({
+      data: {
+        title: 'Purchase Rejected',
+        message: `Purchase order ${purchase.purchaseNumber} was rejected.`,
+        type: 'PURCHASE',
+        severity: 'WARNING',
+        isRead: false
+      }
+    }).catch(() => { });
+
     return purchase;
   }
 
@@ -163,5 +198,72 @@ export class PurchasesService {
       include: { supplier: true, createdBy: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async generateDraftPO() {
+    // Get all active products
+    const products = await this.prisma.product.findMany({
+      where: { isActive: true },
+      include: { category: true }
+    });
+
+    const stockSums = await this.prisma.inventory.groupBy({
+      by: ['productId'],
+      where: { isExpired: false, quantity: { gt: 0 } },
+      _sum: { quantity: true }
+    });
+
+    const stockMap = new Map<number, number>(
+      stockSums.map((s) => [s.productId, s._sum.quantity ?? 0])
+    );
+
+    // Find items below stock limit
+    const deficitItems = products.filter(p => {
+      const current = stockMap.get(p.id) ?? 0;
+      return current < p.minStockLevel;
+    });
+
+    if (deficitItems.length === 0) {
+      return { message: 'All items are well stocked! No draft PO needed.', items: [] };
+    }
+
+    // Find default supplier for categories or just select first active supplier
+    const suppliers = await this.prisma.supplier.findMany({
+      where: { isActive: true },
+      take: 1
+    });
+    const defaultSupplierId = suppliers[0]?.id || 1;
+
+    // Map deficit items to purchase order line items mock
+    const draftItems = deficitItems.map(p => {
+      const current = stockMap.get(p.id) ?? 0;
+      const deficit = p.minStockLevel - current;
+      // Add a 20% safe buffer to deficit
+      const orderQty = Math.ceil(deficit * 1.2);
+      const suggestedPrice = 100; // default placeholder price
+
+      return {
+        productId: p.id,
+        productName: p.name,
+        category: p.category.name,
+        unit: p.unit,
+        currentStock: current,
+        minRequired: p.minStockLevel,
+        suggestedPurchaseQty: orderQty,
+        suggestedPrice: suggestedPrice,
+        totalPrice: orderQty * suggestedPrice
+      };
+    });
+
+    const totalAmount = draftItems.reduce((s, item) => s + item.totalPrice, 0);
+
+    return {
+      supplierId: defaultSupplierId,
+      items: draftItems,
+      totalAmount: totalAmount,
+      gstAmount: Math.round(totalAmount * 0.05 * 100) / 100, // 5% average GST
+      netAmount: Math.round(totalAmount * 1.05 * 100) / 100,
+      notes: 'AI Auto-Draft PO: Restocking safety levels.'
+    };
   }
 }

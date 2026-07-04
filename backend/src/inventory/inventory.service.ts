@@ -10,7 +10,7 @@ export class InventoryService {
     private prisma: PrismaService,
     private appGateway: AppGateway,
     private emailService: EmailService,
-  ) {}
+  ) { }
 
   async findAll() {
     return this.prisma.inventory.findMany({
@@ -53,11 +53,11 @@ export class InventoryService {
     }));
   }
 
-  /** Returns items expiring within `days` days */
+  /** Returns items expiring within `days` days and auto-alerts the dashboard/notification center */
   async getExpiringSoon(days: number = 7) {
     const future = new Date();
     future.setDate(future.getDate() + days);
-    return this.prisma.inventory.findMany({
+    const expiringItems = await this.prisma.inventory.findMany({
       where: {
         expiryDate: { lte: future, gte: new Date() },
         isExpired: false,
@@ -65,6 +65,34 @@ export class InventoryService {
       include: { product: true },
       orderBy: { expiryDate: 'asc' },
     });
+
+    // Auto-create expiry warning persistent notifications
+    for (const item of expiringItems) {
+      const formattedDate = item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('en-IN') : 'N/A';
+      const msg = `Batch ${item.batchNumber || 'N/A'} of product ${item.product.name} will expire on ${formattedDate}.`;
+
+      const exists = await this.prisma.notification.findFirst({
+        where: {
+          type: 'EXPIRY',
+          message: { contains: formattedDate },
+          title: { contains: item.product.name },
+        },
+      });
+
+      if (!exists) {
+        await this.prisma.notification.create({
+          data: {
+            title: `Expiry Alert: ${item.product.name}`,
+            message: msg,
+            type: 'EXPIRY',
+            severity: 'WARNING',
+            isRead: false,
+          },
+        }).catch(() => { });
+      }
+    }
+
+    return expiringItems;
   }
 
   /** Aggregate inventory statistics for dashboard */
@@ -184,7 +212,18 @@ export class InventoryService {
           currentQty,
           product.minStockLevel,
           product.unit,
-        ).catch(() => {});
+        ).catch(() => { });
+
+        // Persistent database notification
+        await client.notification.create({
+          data: {
+            title: `Low Stock: ${product.name}`,
+            message: `Product ${product.name} is below safety stock level. Current quantity: ${currentQty} ${product.unit} (minimum threshold: ${product.minStockLevel} ${product.unit}).`,
+            type: 'LOW_STOCK',
+            severity: 'CRITICAL',
+            isRead: false,
+          },
+        }).catch(() => { });
       } catch (err) {
         console.error('Failed to broadcast low stock alert:', err.message);
       }

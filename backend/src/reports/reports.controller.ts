@@ -27,7 +27,7 @@ export class ReportsController {
   }
 
   @Post('daily')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'ACCOUNTANT')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Generate and stream daily report for a specific date' })
   async generateDaily(
@@ -45,7 +45,7 @@ export class ReportsController {
   }
 
   @Post('monthly')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'ACCOUNTANT')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Generate and stream monthly expense report' })
   async generateMonthly(
@@ -63,7 +63,7 @@ export class ReportsController {
   }
 
   @Post('inventory')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'ACCOUNTANT')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Generate and stream inventory valuation report' })
   async generateInventory(

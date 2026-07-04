@@ -54,6 +54,33 @@ const prisma = new PrismaClient({
 async function main() {
   console.log('🌱 Starting database seed...');
 
+  // ─── Clean Up Obsolete Users and Roles ──────────────────────────
+  await prisma.user.deleteMany({
+    where: {
+      email: {
+        in: [
+          'storekeeper@jkkm.edu.in',
+          'kitchen@jkkm.edu.in',
+          'accounts@jkkm.edu.in',
+          'student@jkkm.edu.in'
+        ]
+      }
+    }
+  });
+
+  await prisma.role.deleteMany({
+    where: {
+      name: {
+        in: [
+          'STORE_KEEPER',
+          'KITCHEN_STAFF',
+          'ACCOUNTANT',
+          'STUDENT_VIEWER'
+        ]
+      }
+    }
+  });
+
   // ─── Roles ───────────────────────────────────────────────────────
   const roles = await Promise.all([
     prisma.role.upsert({
@@ -67,39 +94,19 @@ async function main() {
       create: { name: 'MESS_MANAGER', description: 'Manage purchases, inventory, reports' },
     }),
     prisma.role.upsert({
-      where: { name: 'STORE_KEEPER' },
-      update: {},
-      create: { name: 'STORE_KEEPER', description: 'Manage inventory and purchases' },
-    }),
-    prisma.role.upsert({
-      where: { name: 'KITCHEN_STAFF' },
-      update: {},
-      create: { name: 'KITCHEN_STAFF', description: 'Issue stock, log consumption' },
-    }),
-    prisma.role.upsert({
-      where: { name: 'ACCOUNTANT' },
-      update: {},
-      create: { name: 'ACCOUNTANT', description: 'View financial reports' },
-    }),
-    prisma.role.upsert({
       where: { name: 'HOSTEL_WARDEN' },
       update: {},
       create: { name: 'HOSTEL_WARDEN', description: 'Manage hostel attendance and complaints' },
     }),
-    prisma.role.upsert({
-      where: { name: 'STUDENT_VIEWER' },
-      update: {},
-      create: { name: 'STUDENT_VIEWER', description: 'View menu and submit complaints' },
-    }),
   ]);
-  console.log(`✅ Created ${roles.length} roles`);
+  console.log(`✅ Created/Updated ${roles.length} roles`);
 
   // Helper to find role ID by name
   const getRoleId = (name: string) => roles.find((r) => r.name === name)!.id;
 
   // ─── Demo Users ───────────────────────────────────────────────────
   // SUPER_ADMIN
-  const adminPassword = await bcrypt.hash('Jkkm@Admin2026', 12);
+  const adminPassword = await bcrypt.hash('Jkkm@Admin2026', 10);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@jkkm.edu.in' },
     update: {
@@ -120,8 +127,8 @@ async function main() {
   console.log(`✅ Admin user: ${admin.email}`);
 
   // MESS_MANAGER
-  const managerPassword = await bcrypt.hash('Jkkm@Mess2026', 12);
-  await prisma.user.upsert({
+  const managerPassword = await bcrypt.hash('Jkkm@Mess2026', 10);
+  const manager = await prisma.user.upsert({
     where: { email: 'messmanager@jkkm.edu.in' },
     update: {
       name: 'Mess Manager',
@@ -138,70 +145,11 @@ async function main() {
       roleId: getRoleId('MESS_MANAGER'),
     },
   });
-
-  // STORE_KEEPER
-  const storekeeperPassword = await bcrypt.hash('Jkkm@Store2026', 12);
-  await prisma.user.upsert({
-    where: { email: 'storekeeper@jkkm.edu.in' },
-    update: {
-      name: 'Storekeeper',
-      password: storekeeperPassword,
-      roleId: getRoleId('STORE_KEEPER'),
-      failedLoginAttempts: 0,
-      lockUntil: null,
-    },
-    create: {
-      name: 'Storekeeper',
-      email: 'storekeeper@jkkm.edu.in',
-      password: storekeeperPassword,
-      phone: '9786543210',
-      roleId: getRoleId('STORE_KEEPER'),
-    },
-  });
-
-  // KITCHEN_STAFF
-  const staffPassword = await bcrypt.hash('Jkkm@Kitchen2026', 12);
-  await prisma.user.upsert({
-    where: { email: 'kitchen@jkkm.edu.in' },
-    update: {
-      name: 'Kitchen Staff',
-      password: staffPassword,
-      roleId: getRoleId('KITCHEN_STAFF'),
-      failedLoginAttempts: 0,
-      lockUntil: null,
-    },
-    create: {
-      name: 'Kitchen Staff',
-      email: 'kitchen@jkkm.edu.in',
-      password: staffPassword,
-      phone: '9876543212',
-      roleId: getRoleId('KITCHEN_STAFF'),
-    },
-  });
-
-  // ACCOUNTANT
-  const accountantPassword = await bcrypt.hash('Jkkm@Accounts2026', 12);
-  await prisma.user.upsert({
-    where: { email: 'accounts@jkkm.edu.in' },
-    update: {
-      name: 'Accountant',
-      password: accountantPassword,
-      roleId: getRoleId('ACCOUNTANT'),
-      failedLoginAttempts: 0,
-      lockUntil: null,
-    },
-    create: {
-      name: 'Accountant',
-      email: 'accounts@jkkm.edu.in',
-      password: accountantPassword,
-      phone: '8122345678',
-      roleId: getRoleId('ACCOUNTANT'),
-    },
-  });
+  console.log(`✅ Mess Manager user: ${manager.email}`);
 
   // HOSTEL_WARDEN
-  const wardenPassword = await bcrypt.hash('Jkkm@Warden2026', 12);
-  await prisma.user.upsert({
+  const wardenPassword = await bcrypt.hash('Jkkm@Warden2026', 10);
+  const warden = await prisma.user.upsert({
     where: { email: 'warden@jkkm.edu.in' },
     update: {
       name: 'Hostel Warden',
@@ -218,26 +166,7 @@ async function main() {
       roleId: getRoleId('HOSTEL_WARDEN'),
     },
   });
-
-  // STUDENT_VIEWER
-  const studentPassword = await bcrypt.hash('Jkkm@Student2026', 12);
-  await prisma.user.upsert({
-    where: { email: 'student@jkkm.edu.in' },
-    update: {
-      name: 'Student Viewer',
-      password: studentPassword,
-      roleId: getRoleId('STUDENT_VIEWER'),
-      failedLoginAttempts: 0,
-      lockUntil: null,
-    },
-    create: {
-      name: 'Student Viewer',
-      email: 'student@jkkm.edu.in',
-      password: studentPassword,
-      phone: '8122345680',
-      roleId: getRoleId('STUDENT_VIEWER'),
-    },
-  });
+  console.log(`✅ Warden user: ${warden.email}`);
   console.log('✅ Demo users created');
 
   // ─── Categories ───────────────────────────────────────────────────

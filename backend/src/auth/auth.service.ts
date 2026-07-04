@@ -12,11 +12,12 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private prisma: PrismaService,
-  ) {}
+  ) { }
 
   /** Strict validation: check if email domain is JKKM institutional email */
   private validateDomain(email: string) {
-    if (!email.toLowerCase().endsWith('@jkkm.edu.in')) {
+    const cleaned = (email || '').toLowerCase().trim();
+    if (!cleaned.endsWith('@jkkm.edu.in')) {
       throw new ForbiddenException('Access restricted to JKKM institutional accounts only.');
     }
   }
@@ -46,22 +47,23 @@ export class AuthService {
 
   /** Validate email + password, check locks, and handle failed attempts counters */
   async validateUser(email: string, pass: string, ipAddress?: string, userAgent?: string) {
-    this.validateDomain(email);
+    const cleanedEmail = (email || '').toLowerCase().trim();
+    this.validateDomain(cleanedEmail);
 
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.usersService.findByEmail(cleanedEmail);
     if (!user) {
-      await this.logLoginActivity(null, email, 'FAILED', ipAddress, userAgent);
+      this.logLoginActivity(null, cleanedEmail, 'FAILED', ipAddress, userAgent);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     if (!user.isActive) {
-      await this.logLoginActivity(user.id, email, 'FAILED', ipAddress, userAgent);
+      this.logLoginActivity(user.id, cleanedEmail, 'FAILED', ipAddress, userAgent);
       throw new UnauthorizedException('Account is deactivated');
     }
 
     // Check if account is currently locked out
     if (user.lockUntil && user.lockUntil > new Date()) {
-      await this.logLoginActivity(user.id, email, 'FAILED', ipAddress, userAgent);
+      this.logLoginActivity(user.id, cleanedEmail, 'FAILED', ipAddress, userAgent);
       const remainingTime = Math.ceil((user.lockUntil.getTime() - Date.now()) / 60000);
       throw new UnauthorizedException(`Account is locked. Try again in ${remainingTime} minutes.`);
     }
@@ -73,7 +75,7 @@ export class AuthService {
       const lockUntil = isLocking ? new Date(Date.now() + 15 * 60 * 1000) : null; // 15 mins lock
 
       await this.usersService.updateLockoutState(user.id, attempts, lockUntil);
-      await this.logLoginActivity(user.id, email, 'FAILED', ipAddress, userAgent);
+      this.logLoginActivity(user.id, cleanedEmail, 'FAILED', ipAddress, userAgent);
 
       if (isLocking) {
         throw new UnauthorizedException('Account is locked due to 5 failed attempts. Locked for 15 minutes.');
@@ -90,8 +92,10 @@ export class AuthService {
   /** Login: validate -> stamp log -> return JWT */
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
     const user = await this.validateUser(dto.email, dto.password, ipAddress, userAgent);
-    await this.usersService.updateLastLogin(user.id);
-    await this.logLoginActivity(user.id, user.email, 'SUCCESS', ipAddress, userAgent);
+
+    // Non-blocking background loggers to bypass response blocking
+    this.usersService.updateLastLogin(user.id).catch(err => console.error('Failed to update last login:', err));
+    this.logLoginActivity(user.id, user.email, 'SUCCESS', ipAddress, userAgent);
 
     const payload = { sub: user.id, email: user.email, role: user.role.name, name: user.name };
     return {
@@ -109,11 +113,12 @@ export class AuthService {
 
   /** Register new user (typically called by Super Admin) */
   async register(dto: RegisterDto) {
-    this.validateDomain(dto.email);
-    const exists = await this.usersService.findByEmail(dto.email);
+    const email = (dto.email || '').toLowerCase().trim();
+    this.validateDomain(email);
+    const exists = await this.usersService.findByEmail(email);
     if (exists) throw new ConflictException('Email already registered');
-    const hashed = await bcrypt.hash(dto.password, 12);
-    const user = await this.usersService.create({ ...dto, password: hashed });
+    const hashed = await bcrypt.hash(dto.password, 10);
+    const user = await this.usersService.create({ ...dto, email, password: hashed });
     return { message: 'User registered successfully', userId: user.id };
   }
 

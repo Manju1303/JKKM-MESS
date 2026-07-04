@@ -16,7 +16,7 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('products')
 export class ProductsController {
-  constructor(private productsService: ProductsService) {}
+  constructor(private productsService: ProductsService) { }
 
   @Get()
   @ApiQuery({ name: 'type', required: false, enum: ['PACKAGED', 'VEGETABLE', 'BULK'] })
@@ -50,21 +50,21 @@ export class ProductsController {
   }
 
   @Post()
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
   @ApiOperation({ summary: 'Create a new product' })
   create(@Body() dto: CreateProductDto) {
     return this.productsService.create(dto);
   }
 
   @Post('categories')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
   @ApiOperation({ summary: 'Create a new product category' })
   createCategory(@Body() dto: CreateCategoryDto) {
     return this.productsService.createCategory(dto);
   }
 
   @Put(':id')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
   @ApiOperation({ summary: 'Update product details' })
   update(
     @Param('id', ParseIntPipe) id: number,

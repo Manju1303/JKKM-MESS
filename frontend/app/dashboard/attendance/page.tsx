@@ -1,7 +1,10 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { attendanceAPI } from '@/lib/api';
-import { Calendar, Users, Plus, CheckCircle2, TrendingUp, AlertCircle, Building, Clock } from 'lucide-react';
+import {
+  Calendar, Users, Plus, CheckCircle2, TrendingUp, AlertCircle, Building, Clock,
+  Camera, Keyboard, RefreshCw, X, FlipHorizontal, QrCode
+} from 'lucide-react';
 import { cn, formatDate } from '@/lib/utils';
 import {
   BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend
@@ -22,7 +25,7 @@ interface AttendanceLog {
 const transformAttendanceTrend = (records: any[]) => {
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const dayMap: Record<string, { day: string; Breakfast: number; Lunch: number; Dinner: number; Snack: number }> = {};
-  
+
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
@@ -51,13 +54,78 @@ export default function AttendancePage() {
   const [stats, setStats] = useState({ todayCount: 0, weeklyAvg: 0, peakCount: 0 });
   const [loading, setLoading] = useState(true);
 
-  // Form State
+  // Mode Selection State
+  const [entryMode, setEntryMode] = useState<'MANUAL' | 'SCANNER'>('MANUAL');
+
+  // Manual Form State
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [meal, setMeal] = useState('LUNCH');
   const [count, setCount] = useState('');
   const [hostel, setHostel] = useState('All Hostels');
   const [notes, setNotes] = useState('');
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Scanner (Mobile Barcode) State
+  const [studentBarcode, setStudentBarcode] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanStatus, setScanStatus] = useState('');
+  const [cameraError, setCameraError] = useState('');
+  const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
+  const [scannerMsg, setScannerMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanControlsRef = useRef<any>(null);
+
+  // Audio beeper interface
+  const playBeep = (type: 'success' | 'error') => {
+    try {
+      const SoundCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new SoundCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      if (type === 'success') {
+        osc.frequency.setValueAtTime(850, ctx.currentTime);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.1);
+      } else {
+        osc.frequency.setValueAtTime(220, ctx.currentTime);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+      }
+    } catch { }
+  };
+
+  const stopCamera = useCallback(() => {
+    if (scanControlsRef.current) {
+      try { scanControlsRef.current.stop(); } catch { }
+      scanControlsRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  const stopScanning = useCallback(() => {
+    stopCamera();
+    setIsScanning(false);
+    setScanStatus('');
+    setCameraError('');
+  }, [stopCamera]);
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, [stopCamera]);
 
   const fetchAttendance = async () => {
     try {
@@ -82,6 +150,91 @@ export default function AttendancePage() {
   useEffect(() => {
     fetchAttendance();
   }, []);
+
+  const handleScanSubmit = async (barcodeVal: string) => {
+    const code = barcodeVal.trim();
+    if (!code) return;
+    try {
+      setScannerMsg(null);
+      const res = await attendanceAPI.registerScan(code, hostel === 'All Hostels' ? 'All Hostels' : hostel);
+      if (res.data) {
+        setScannerMsg({ type: 'success', text: `Approved: ${res.data.message} (Count: ${res.data.totalCount})` });
+        playBeep('success');
+        setStudentBarcode('');
+        fetchAttendance(); // refresh chart
+      }
+    } catch (err: any) {
+      setScannerMsg({
+        type: 'error',
+        text: err.response?.data?.message || `Failed to log scan for ID: ${code}`
+      });
+      playBeep('error');
+    }
+  };
+
+  const startScanning = async (facing: 'environment' | 'user' = cameraFacing) => {
+    setIsScanning(true);
+    setCameraError('');
+    setScanStatus('Starting camera…');
+    stopCamera();
+
+    await new Promise(r => setTimeout(r, 200));
+
+    if (!videoRef.current) {
+      setCameraError('Video object not ready.');
+      setIsScanning(false);
+      return;
+    }
+
+    try {
+      const { BrowserMultiFormatReader } = await import('@zxing/browser');
+      const codeReader = new BrowserMultiFormatReader();
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+
+      streamRef.current = stream;
+      setScanStatus('Camera active — scan student card');
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play().catch(() => { });
+
+      const controls = await codeReader.decodeFromStream(
+        stream,
+        videoRef.current,
+        (result) => {
+          if (result) {
+            const text = result.getText();
+            controls.stop();
+            scanControlsRef.current = null;
+            stopCamera();
+            setIsScanning(false);
+            setScanStatus('');
+            handleScanSubmit(text);
+          }
+        }
+      );
+      scanControlsRef.current = controls;
+    } catch (e: any) {
+      console.error(e);
+      stopCamera();
+      setIsScanning(false);
+      setScanStatus('');
+      setCameraError('Permission denied or camera busy.');
+    }
+  };
+
+  const flipCamera = () => {
+    const nextFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+    setCameraFacing(nextFacing);
+    if (isScanning) {
+      startScanning(nextFacing);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,101 +333,225 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        {/* Record Headcount Form */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-semibold text-foreground text-base mb-1">Record Headcount</h3>
-          <p className="text-xs text-muted-foreground mb-4">Input actual meal intake counts manually</p>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Intake Date</label>
-              <input
-                type="date"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Meal Session</label>
-              <div className="grid grid-cols-3 gap-2">
-                {['BREAKFAST', 'LUNCH', 'DINNER'].map(m => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setMeal(m)}
-                    className={cn(
-                      'py-1.5 rounded-lg text-xs font-medium border capitalize transition-all',
-                      meal === m
-                        ? 'bg-primary text-white border-primary'
-                        : 'bg-muted border-border text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    {m.toLowerCase()}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Student Headcount</label>
-              <div className="relative">
-                <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="number"
-                  placeholder="e.g. 450"
-                  value={count}
-                  onChange={e => setCount(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 text-sm rounded-lg bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Hostel Wing</label>
-              <select
-                value={hostel}
-                onChange={e => setHostel(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                <option value="All Hostels">All Hostels (Consolidated)</option>
-                <option value="Boys Hostel A">Boys Hostel A</option>
-                <option value="Boys Hostel B">Boys Hostel B</option>
-                <option value="Girls Hostel">Girls Hostel</option>
-                <option value="PG Hostel">PG Hostel & Staff</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Remarks / Notes</label>
-              <textarea
-                placeholder="Special instructions or events..."
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 h-16 resize-none"
-              />
-            </div>
-
-            {statusMsg && (
-              <div className={cn(
-                'p-3 rounded-lg flex items-center gap-2 text-xs',
-                statusMsg.type === 'success' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
-              )}>
-                {statusMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                <span>{statusMsg.text}</span>
-              </div>
-            )}
-
+        {/* Record Headcount Form / Scanner */}
+        <div className="bg-card border border-border rounded-xl p-5 flex flex-col">
+          <div className="flex border-b border-border mb-4">
             <button
-              type="submit"
-              className="w-full py-2.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/95 transition-all flex items-center justify-center gap-1.5"
+              onClick={() => { stopScanning(); setEntryMode('MANUAL'); }}
+              className={cn(
+                "flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-center border-b-2 transition-all cursor-pointer",
+                entryMode === 'MANUAL' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
             >
-              <Plus className="w-4 h-4" /> Log Headcount
+              <span className="flex items-center justify-center gap-1.5"><Keyboard className="w-3.5 h-3.5" /> Manual Entry</span>
             </button>
-          </form>
+            <button
+              onClick={() => { setEntryMode('SCANNER'); }}
+              className={cn(
+                "flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-center border-b-2 transition-all cursor-pointer",
+                entryMode === 'SCANNER' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <span className="flex items-center justify-center gap-1.5"><QrCode className="w-3.5 h-3.5" /> Scan ID Card</span>
+            </button>
+          </div>
+
+          {entryMode === 'MANUAL' ? (
+            <>
+              <h3 className="font-semibold text-foreground text-sm mb-1">Record Headcount</h3>
+              <p className="text-[11px] text-muted-foreground mb-4 font-normal">Input actual meal intake counts manually</p>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Intake Date</label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={e => setDate(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Meal Session</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['BREAKFAST', 'LUNCH', 'DINNER'].map(m => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setMeal(m)}
+                        className={cn(
+                          'py-1.5 rounded-lg text-xs font-medium border capitalize transition-all cursor-pointer',
+                          meal === m
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-muted border-border text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        {m.toLowerCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Student Headcount</label>
+                  <div className="relative">
+                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="number"
+                      placeholder="e.g. 450"
+                      value={count}
+                      onChange={e => setCount(e.target.value)}
+                      className="w-full pl-10 pr-3 py-2 text-sm rounded-lg bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Hostel Wing</label>
+                  <select
+                    value={hostel}
+                    onChange={e => setHostel(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    <option value="All Hostels">All Hostels (Consolidated)</option>
+                    <option value="Boys Hostel A">Boys Hostel A</option>
+                    <option value="Boys Hostel B">Boys Hostel B</option>
+                    <option value="Girls Hostel">Girls Hostel</option>
+                    <option value="PG Hostel">PG Hostel & Staff</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Remarks / Notes</label>
+                  <textarea
+                    placeholder="Special instructions or events..."
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 h-16 resize-none"
+                  />
+                </div>
+
+                {statusMsg && (
+                  <div className={cn(
+                    'p-3 rounded-lg flex items-center gap-2 text-xs border',
+                    statusMsg.type === 'success' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
+                  )}>
+                    {statusMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                    <span>{statusMsg.text}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Log Headcount
+                </button>
+              </form>
+            </>
+          ) : (
+            <div className="space-y-4">
+              <h3 className="font-semibold text-foreground text-sm mb-1">Mobile Scanner Entry</h3>
+              <p className="text-[11px] text-muted-foreground mb-4 font-normal">Point mobile camera at student card barcode or use keyboard key-in</p>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Hostel Location</label>
+                <select
+                  value={hostel}
+                  onChange={e => setHostel(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <option value="All Hostels">All Hostels (Consolidated)</option>
+                  <option value="Boys Hostel A">Boys Hostel A</option>
+                  <option value="Boys Hostel B">Boys Hostel B</option>
+                  <option value="Girls Hostel">Girls Hostel</option>
+                  <option value="PG Hostel">PG Hostel & Staff</option>
+                </select>
+              </div>
+
+              {/* Camera Scanner View */}
+              {isScanning ? (
+                <div className="relative aspect-video rounded-lg overflow-hidden bg-black border border-border">
+                  <video ref={videoRef} className="w-full h-full object-cover" playsInline />
+                  <div className="absolute inset-0 border border-primary/40 pointer-events-none flex items-center justify-center">
+                    <div className="w-40 h-20 border border-dashed border-primary animate-pulse" />
+                  </div>
+                  <div className="absolute top-2 left-2 flex gap-1.5">
+                    <button
+                      onClick={flipCamera}
+                      className="p-1.5 rounded-lg bg-black/70 text-white hover:bg-black/90 transition-all cursor-pointer"
+                      title="Flip Camera"
+                    >
+                      <FlipHorizontal className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <button
+                    onClick={stopScanning}
+                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all font-semibold text-[10px] flex items-center gap-1 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" /> Cancel
+                  </button>
+                  <div className="absolute bottom-2 left-2 right-2 text-center text-[10px] bg-black/60 text-white py-0.5 rounded">
+                    {scanStatus}
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => startScanning('environment')}
+                  className="w-full py-6 rounded-lg border border-dashed border-primary/30 hover:border-primary/60 bg-primary/5 hover:bg-primary/10 transition-all flex flex-col items-center justify-center gap-2 group text-primary cursor-pointer font-bold"
+                >
+                  <Camera className="w-8 h-8 group-hover:scale-105 transition-transform" />
+                  <span className="text-xs">Start Camera Scanner</span>
+                </button>
+              )}
+
+              {cameraError && (
+                <div className="p-3 bg-red-500/10 text-red-400 rounded-lg text-[10px] flex items-start gap-1 border border-red-500/20">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>{cameraError}</span>
+                </div>
+              )}
+
+              {/* Key Wedge barcode reader / bluetooth card interface */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <QrCode className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Scan or type student code..."
+                  value={studentBarcode}
+                  onChange={e => setStudentBarcode(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      handleScanSubmit(studentBarcode);
+                    }
+                  }}
+                  className="w-full pl-10 pr-20 py-2 text-sm rounded-lg bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-semibold"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleScanSubmit(studentBarcode)}
+                  className="absolute right-1 top-1 bottom-1 px-3 bg-primary text-white rounded text-xs font-semibold hover:bg-primary/95 transition-all cursor-pointer"
+                >
+                  Log
+                </button>
+              </div>
+
+              {scannerMsg && (
+                <div className={cn(
+                  "p-3 rounded-lg flex items-start gap-2 text-xs border mr-1",
+                  scannerMsg.type === 'success' ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"
+                )}>
+                  {scannerMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" /> : <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />}
+                  <span className="font-semibold text-foreground">{scannerMsg.text}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -319,7 +596,7 @@ export default function AttendancePage() {
                   <td className="py-3 text-right text-foreground font-bold">{log.count}</td>
                   <td className="py-3 text-muted-foreground/80 pl-6 italic">{log.notes || '—'}</td>
                   <td className="py-3 text-right text-muted-foreground flex items-center justify-end gap-1.5">
-                    <Clock className="w-3 h-3 text-muted-foreground/50" />
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground/50" />
                     {new Date(log.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                   </td>
                 </tr>

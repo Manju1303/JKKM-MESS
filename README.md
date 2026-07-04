@@ -8,9 +8,14 @@ Enterprise-grade **Hostel Mess Automation & Management System** for the JKKM Gro
 
 The project is organized as a monorepo-style structure:
 * **`/backend`**: NestJS application with Prisma ORM and PostgreSQL integration.
-* **`/frontend`**: Next.js application built with Tailwind CSS, Shadcn/UI, and Zustand.
+  * **`backend/src/auth/auth.service.spec.ts`**: Unit test suite for validation domains and user lockout security.
+  * **`backend/src/kitchen/kitchen.service.spec.ts`**: Unit test suite for FEFO checks and stock issues.
+  * **`backend/tools/`**: Automated script utilities facilitating database syncing using local DNS lookup overrides.
+* **`/frontend`**: Next.js application built with Tailwind CSS v4, Shadcn/UI, and Zustand.
 * **`/nginx`**: Nginx reverse proxy configuration for handling SSL/TLS termination on Virtual Private Servers (VPS).
 * **`/scripts`**: Automation and deployment scripts.
+* **`test-report.md`**: Comprehensive diagnostics log generated during unit testing.
+* **`ui-responsiveness-report.md`**: Layout flexability audit and dark-theme rendering reports.
 
 ---
 
@@ -157,8 +162,32 @@ Render puts free services to sleep after 15 minutes of inactivity. To bypass thi
 
 ---
 
-## ⚠️ Institutional/College Network DNS Blocks
+## ⚠️ Institutional/College Network DNS Blocks & Setup Fixes
 
-If you receive **"Cannot reach the server"** or **`Recv failure: Connection was reset`** errors while connecting to database endpoints (`*.neon.tech`, `*.koyeb.app`) from a college/institutional firewall:
+If you receive **"Cannot reach the server"** or **`Recv failure: Connection was reset`** errors while connecting to database endpoints (`*.neon.tech`, `aws-1-ap-southeast-2.pooler.supabase.com:5432`) due to local network proxy limitations, use these workarounds:
 1. **Disable IPv6 locally:** Uncheck *Internet Protocol Version 6 (TCP/IPv6)* under your Network Adapter properties in Windows.
-2. **Use a VPN or Mobile Hotspot:** Connecting via VPN or hotspot immediately bypasses local network blocks.
+2. **Execute Custom DNS Sync Tools**: We created tooling templates in `/backend/tools` that bypass local DNS lookup hijackings using Google Public DNS servers:
+   * Run Database Schema Sync:
+     ```bash
+     node tools/db-push.js
+     ```
+   * Run Database Demo Seeding:
+     ```bash
+     node tools/db-seed.js
+     ```
+3. **Use a VPN or Hotspot:** Connecting via VPN or hotspot immediately bypasses local network blocks.
+
+---
+
+## 🧪 Running Unit Tests
+
+We have included Jest testing configurations inside the backend project:
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Run the test suite:
+   ```bash
+   npm run test
+   ```
+This will run all mock-based unit tests for institutional validation, account lockouts, and FEFO stock matching logic.

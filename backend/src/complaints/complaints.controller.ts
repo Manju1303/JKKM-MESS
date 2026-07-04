@@ -13,22 +13,18 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('complaints')
 export class ComplaintsController {
-  constructor(private readonly complaintsService: ComplaintsService) {}
+  constructor(private readonly complaintsService: ComplaintsService) { }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'HOSTEL_WARDEN', 'STUDENT_VIEWER')
-  @ApiOperation({ summary: 'Get complaints (Warden/Admin gets all, Student gets only own)' })
-  findAll(@Request() req: any) {
-    const { userId, role } = req.user;
-    if (role === 'STUDENT_VIEWER') {
-      return this.complaintsService.findByStudent(userId);
-    }
+  @Roles('SUPER_ADMIN', 'HOSTEL_WARDEN')
+  @ApiOperation({ summary: 'Get complaints (Warden/Admin gets all)' })
+  findAll() {
     return this.complaintsService.findAll();
   }
 
   @Post()
-  @Roles('STUDENT_VIEWER')
-  @ApiOperation({ summary: 'Submit a new complaint (Student only)' })
+  @Roles('SUPER_ADMIN', 'HOSTEL_WARDEN')
+  @ApiOperation({ summary: 'Submit a new complaint' })
   create(@Body() dto: CreateComplaintDto, @Request() req: any) {
     return this.complaintsService.create(dto, req.user.userId, req.user.name);
   }

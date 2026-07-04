@@ -30,36 +30,36 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
 const isRouteAllowed = (path: string, role: string) => {
   if (path === '/dashboard/menu') return true;
   if (path === '/dashboard/notifications') return true;
-  
+
   if (path === '/dashboard') {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'KITCHEN_STAFF', 'ACCOUNTANT', 'HOSTEL_WARDEN'].includes(role);
+    return ['SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN'].includes(role);
   }
   if (path.startsWith('/dashboard/inventory')) {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'ACCOUNTANT'].includes(role);
+    return ['SUPER_ADMIN', 'MESS_MANAGER'].includes(role);
   }
   if (path.startsWith('/dashboard/products')) {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'ACCOUNTANT'].includes(role);
+    return ['SUPER_ADMIN', 'MESS_MANAGER'].includes(role);
   }
   if (path.startsWith('/dashboard/purchases')) {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'ACCOUNTANT'].includes(role);
+    return ['SUPER_ADMIN', 'MESS_MANAGER'].includes(role);
   }
   if (path.startsWith('/dashboard/suppliers')) {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'ACCOUNTANT'].includes(role);
+    return ['SUPER_ADMIN', 'MESS_MANAGER'].includes(role);
   }
   if (path.startsWith('/dashboard/kitchen')) {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'KITCHEN_STAFF'].includes(role);
+    return ['SUPER_ADMIN', 'MESS_MANAGER'].includes(role);
   }
   if (path.startsWith('/dashboard/barcode')) {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER'].includes(role);
+    return ['SUPER_ADMIN', 'MESS_MANAGER'].includes(role);
   }
   if (path.startsWith('/dashboard/complaints')) {
-    return ['SUPER_ADMIN', 'HOSTEL_WARDEN', 'STUDENT_VIEWER'].includes(role);
+    return ['SUPER_ADMIN', 'HOSTEL_WARDEN'].includes(role);
   }
   if (path.startsWith('/dashboard/reports')) {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'ACCOUNTANT'].includes(role);
+    return ['SUPER_ADMIN', 'MESS_MANAGER'].includes(role);
   }
   if (path.startsWith('/dashboard/attendance')) {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN'].includes(role);
+    return ['SUPER_ADMIN', 'HOSTEL_WARDEN'].includes(role);
   }
   if (path.startsWith('/dashboard/ai')) {
     return ['SUPER_ADMIN', 'MESS_MANAGER'].includes(role);
@@ -204,12 +204,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </p>
               <button
                 onClick={() => {
-                  if (user?.role === 'STUDENT_VIEWER') router.push('/dashboard/menu');
-                  else if (user?.role === 'SUPER_ADMIN') router.push('/dashboard/users');
-                  else if (user?.role === 'STORE_KEEPER') router.push('/dashboard/inventory');
-                  else if (user?.role === 'KITCHEN_STAFF') router.push('/dashboard/kitchen');
+                  if (user?.role === 'SUPER_ADMIN') router.push('/dashboard/users');
                   else if (user?.role === 'HOSTEL_WARDEN') router.push('/dashboard/attendance');
-                  else if (user?.role === 'ACCOUNTANT') router.push('/dashboard/purchases');
+                  else if (user?.role === 'MESS_MANAGER') router.push('/dashboard/inventory');
                   else router.push('/dashboard');
                 }}
                 className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/95 transition-all shadow-md"

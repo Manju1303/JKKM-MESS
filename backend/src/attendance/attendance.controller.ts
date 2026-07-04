@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, ParseIntPipe, Query, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { AttendanceService } from './attendance.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -10,7 +10,18 @@ import { UpdateAttendanceDto } from './dto/update-attendance.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('attendance')
 export class AttendanceController {
-  constructor(private attendanceService: AttendanceService) {}
+  constructor(private attendanceService: AttendanceService) { }
+
+  @Post('scan')
+  @ApiOperation({ summary: 'Register student card barcode mobile scan for current meal' })
+  registerScan(
+    @Body('studentBarcode') studentBarcode: string,
+    @Body('hostel') hostel?: string,
+    @Request() req?: any
+  ) {
+    const userAgent = req?.headers?.['user-agent'] || 'Mobile Web Scanner';
+    return this.attendanceService.registerScan(studentBarcode, hostel, userAgent);
+  }
 
   @Get()
   @ApiQuery({ name: 'days', required: false, type: Number })
