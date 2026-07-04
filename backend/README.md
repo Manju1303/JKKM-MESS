@@ -100,12 +100,12 @@ npm run start:dev
 
 ---
 
-## 📡 Live Deployment (Koyeb)
+## 📡 Live Deployment (Render)
 
-* **Deployment URL:** `https://api-mess.arockiamedicalcentre.in`
-* **Custom Start Command:** `npx prisma migrate deploy && node dist/src/main` (runs migrations automatically before launching backend).
-* **Port Mapping:** Exposes port `3001` (Koyeb automatically routes public HTTPS traffic to it).
-* **Important:** Set the **Docker Context Directory** to `backend` and **Dockerfile Path** to `Dockerfile` when deploying on Koyeb. Ensure that environment variables in the Koyeb dashboard are set without quotes.
+* **Deployment URL:** `https://your-app-name.onrender.com`
+* **Custom Start Command:** Render automatically picks up `backend/Dockerfile` which has the migration execution built-in (`npx prisma migrate deploy && node dist/src/main`).
+* **Port Mapping:** Exposes port `3001` (handled by setting `PORT=3001` in Environment Variables).
+* **Important:** Set the **Root Directory** to `backend` when creating the service on Render. This forces the Docker build context to set itself inside the NestJS app directory. Add both `DATABASE_URL` (pooler) and `DIRECT_URL` (direct) in the environment settings.
 
 ### **⚠️ Institutional/College Network DNS Blocks**
 Many educational institutes (such as JKKM College networks) block database endpoints (`*.supabase.co`, `*.neon.tech`) and container hosts (`*.koyeb.app`) over standard IPv6. 

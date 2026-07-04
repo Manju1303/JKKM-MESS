@@ -108,50 +108,52 @@ The database seeding process creates the following testing accounts:
 
 ---
 
-## 📡 Live Production Deployment on Koyeb
+## 📡 Live Production Deployment (Render + Supabase + Vercel)
 
-Koyeb handles SSL (HTTPS/WSS) termination and routing natively. We can deploy the application by bypassing the Nginx proxy completely.
+This setup describes the 100% Free Plan with **24/7 always-on uptime** and low latency by deploying the backend to Render, database to Supabase, and frontend to Vercel.
 
-### 1. Database Setup
-1. Log in to the **Koyeb Console**.
-2. Click **Create Service** and select **Database** $\rightarrow$ **PostgreSQL**.
-3. Copy the generated database connection string (e.g., `postgresql://koyeb-db:xxx@ep-xxx.koyeb.app/koyebdb?sslmode=require`).
+### 1. Database Setup (Supabase)
+1. Register/Login at [Supabase.com](https://supabase.com).
+2. Create a new project pointing to the closest region (e.g. `Singapore` or `Oceania`).
+3. Click the **Connect** button at the top of your dashboard.
+4. Copy the connection string. You will need:
+   * **`DATABASE_URL`** (Transaction-mode pooler: port `6543`, `pgbouncer=true`):
+     `postgresql://postgres.[ID]:[PASSWORD]@aws-1-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true`
+   * **`DIRECT_URL`** (Session-mode: port `5432` — used for Prisma migrations):
+     `postgresql://postgres.[ID]:[PASSWORD]@aws-1-[REGION].pooler.supabase.com:5432/postgres`
 
-### 2. Backend Service Setup (NestJS)
-1. Click **Create Service** and select **Web Service** $\rightarrow$ **GitHub**.
-2. Connect your repository `Manju1303/JKKM-MESS`.
-3. Configure settings:
+### 2. Backend Service Setup (Render)
+1. Sign in to your [Render.com](https://render.com) dashboard.
+2. Click **New +** and select **Web Service**. Connect your GitHub repository.
+3. Configure the settings:
    * **Service Name**: `jkkm-backend`
-   * **Builder**: Docker
-   * **Dockerfile Path**: `backend/Dockerfile`
-   * **Context Directory**: `backend`
-   * **Exposed Port**: `3001` (Protocol: `HTTP`, Path: `/`)
-4. Add the following environment variables:
+   * **Region**: Select `Singapore` (closest to database and user network).
+   * **Root Directory**: `backend` *(Crucial: Build only the NestJS backend context!)*
+   * **Runtime**: Select **Docker** (Render will automatically detect `backend/Dockerfile`).
+   * **Instance Type**: Select the **Free** tier.
+4. Expand the **Advanced** section to add the following **Environment Variables**:
    * `NODE_ENV` = `production`
    * `PORT` = `3001`
-   * `DATABASE_URL` = *(Your connection string from Step 1)*
-   * `JWT_SECRET` = *(Provide a secure random key)*
-   * `FRONTEND_URL` = `https://erp.arockiamedicalcentre.in` (Or your Koyeb Frontend URL)
+   * `DATABASE_URL` = *(Your pooled connection string from Step 1)*
+   * `DIRECT_URL` = *(Your direct connection string from Step 1)*
+   * `JWT_SECRET` = *(Generate a secure random key)*
+   * `FRONTEND_URL` = `https://erp.arockiamedicalcentre.in`
+5. Click **Create Web Service**. Note the deployed URL (e.g., `https://jkkm-backend.onrender.com`).
 
-### 3. Frontend Service Setup (Next.js)
-1. Click **Create Service** and select **Web Service** $\rightarrow$ **GitHub**.
-2. Connect your repository.
-3. Configure settings:
-   * **Service Name**: `jkkm-frontend`
-   * **Builder**: Buildpack (Node.js)
-   * **Work Directory**: `frontend`
-   * **Build Command**: `npm run build`
-   * **Run Command**: `npm run start`
-   * **Exposed Port**: `3000` (Protocol: `HTTP`, Path: `/`)
-4. Add environment variables:
-   * `NEXT_PUBLIC_API_URL` = `https://api-mess.arockiamedicalcentre.in/api/v1` (Or backend's Koyeb URL)
-   * `NEXT_PUBLIC_SOCKET_URL` = `https://api-mess.arockiamedicalcentre.in` (Without `/api/v1` suffix)
+### 3. Frontend Deployment (Vercel)
+1. Deploy the `frontend/` directory to **Vercel**.
+2. Set the environment variables in the Vercel dashboard:
+   * `NEXT_PUBLIC_API_URL` = `https://your-render-backend-url.onrender.com/api/v1`
+   * `NEXT_PUBLIC_SOCKET_URL` = `https://your-render-backend-url.onrender.com`
+3. Map your custom domain `erp.arockiamedicalcentre.in` to the Vercel project deployment.
 
-### 4. Domain & SSL Setup
-Under each service's **Domains** tab, add your custom domain:
-* Map `api-mess.arockiamedicalcentre.in` to the **Backend Service**.
-* Map `erp.arockiamedicalcentre.in` to the **Frontend Service**.
-* Add the CNAME records in your DNS/Cloudflare dashboard as instructed by Koyeb.
+### 4. 24/7 Keep-Alive Setup (UptimeRobot)
+Render puts free services to sleep after 15 minutes of inactivity. To bypass this sleep:
+1. Create a free account on [UptimeRobot.com](https://uptimerobot.com) (no credit card required).
+2. Create an **HTTP(s)** monitor:
+   * **URL**: `https://your-render-backend-url.onrender.com/api/v1/health`
+   * **Interval**: Every **5 minutes**
+3. Save the monitor. This regularly pings the container's health endpoint to keep it awake 24/7.
 
 ---
 
