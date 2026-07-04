@@ -11,14 +11,14 @@ import { GenerateMonthlyReportDto } from './dto/generate-monthly-report.dto';
 
 /**
  * ReportsController streams Excel files generated in-memory directly to the browser.
- * No files are written to disk — fully compatible with Railway's ephemeral filesystem.
+ * No files are written to disk — fully compatible with the container's ephemeral filesystem.
  */
 @ApiTags('Reports')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('reports')
 export class ReportsController {
-  constructor(private reportsService: ReportsService) {}
+  constructor(private reportsService: ReportsService) { }
 
   @Get()
   @ApiOperation({ summary: 'Get all generated report records' })

@@ -7,7 +7,7 @@ import * as nodemailer from 'nodemailer';
  * Uses nodemailer with Gmail SMTP (App Password required).
  * Gracefully no-ops if EMAIL_* env vars are not configured.
  *
- * FIX: Added explicit TLS options for Gmail on Railway (TLS SNI + rejectUnauthorized fix).
+ * FIX: Added explicit TLS options for Gmail on cloud containers (e.g. Koyeb, Railway) (TLS SNI + rejectUnauthorized fix).
  *      Added startup connection verify to surface config problems immediately in logs.
  */
 @Injectable()
@@ -31,13 +31,13 @@ export class EmailService {
         secure: port === 465, // true only for port 465
         auth: { user, pass },
         tls: {
-          // Required on Railway/Docker — avoids "self-signed certificate" errors
+          // Required on Koyeb/Railway/Docker — avoids "self-signed certificate" errors
           // that occur when the egress IP doesn't match SNI expectations.
           rejectUnauthorized: false,
           // Force TLS 1.2 minimum for compatibility with Gmail
           minVersion: 'TLSv1.2',
         },
-        // Increase timeouts for Railway cold-start network latency
+        // Increase timeouts for container/network latency
         connectionTimeout: 10000,  // 10s
         greetingTimeout: 10000,
         socketTimeout: 15000,

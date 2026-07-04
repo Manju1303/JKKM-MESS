@@ -71,9 +71,9 @@ npm install
 ### **2. Configure Environment**
 Create a `.env` file inside the `backend` folder:
 ```env
-DATABASE_URL="postgresql://neondb_owner:npg_GIV4HTpyQZ3N@ep-late-darkness-ao4qhb6o.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+DATABASE_URL="postgresql://username:password@hostname:5432/dbname?sslmode=require"
 PORT=3001
-JWT_SECRET="89194fed62701567e1fd90ce34a5df608c619553bcd875d01b78448b26811631819913a0de871dbc2914272101bec5c581cfdcb35d33645668b5c0befcbba391"
+JWT_SECRET="your-super-secret-jwt-key"
 JWT_EXPIRES_IN="7d"
 FRONTEND_URL="https://erp.arockiamedicalcentre.in"
 NODE_ENV="production"
@@ -108,7 +108,7 @@ npm run start:dev
 * **Important:** Set the **Docker Context Directory** to `backend` and **Dockerfile Path** to `Dockerfile` when deploying on Koyeb. Ensure that environment variables in the Koyeb dashboard are set without quotes.
 
 ### **⚠️ Institutional/College Network DNS Blocks**
-Many educational institutes (such as JKKM College networks) block database endpoints (`*.neon.tech`) and container hosts (`*.up.railway.app`) over standard IPv6. 
+Many educational institutes (such as JKKM College networks) block database endpoints (`*.supabase.co`, `*.neon.tech`) and container hosts (`*.koyeb.app`) over standard IPv6. 
 
 If you receive **"Cannot reach the server"** or **`Recv failure: Connection was reset`** errors while connecting from a college network:
 1. **Disable IPv6 locally:** Uncheck *Internet Protocol Version 6 (TCP/IPv6)* under your Network Adapter properties in Windows to force connections over IPv4.

@@ -4,13 +4,13 @@ import * as ExcelJS from 'exceljs';
 
 /**
  * ReportsService generates Excel reports entirely in-memory using ExcelJS buffers.
- * This avoids writing to Railway's ephemeral filesystem (files lost on redeploy).
+ * This avoids writing to the container's ephemeral filesystem (files lost on redeploy).
  * Each generate* method returns { buffer, filename, report } — the controller
  * streams the buffer directly to the HTTP response using res.end(buffer).
  */
 @Injectable()
 export class ReportsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getAll() {
     return this.prisma.report.findMany({ orderBy: { createdAt: 'desc' } });

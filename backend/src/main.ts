@@ -57,7 +57,7 @@ async function bootstrap() {
   // ── WebSocket ─────────────────────────────────────────────────────────────
   app.useWebSocketAdapter(new IoAdapter(app));
 
-  // Always respect PORT env var — Railway injects PORT and routes traffic to it
+  // Always respect PORT env var — cloud hosts (like Koyeb or Railway) inject PORT and route traffic to it
   const rawPort = (process.env.PORT || '').trim().replace(/^["']|["']$/g, '');
   const port = parseInt(rawPort) || 3001;
 

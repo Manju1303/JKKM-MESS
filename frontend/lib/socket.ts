@@ -6,7 +6,7 @@ const SOCKET_URL =
 export const socket = io(SOCKET_URL, {
   autoConnect: false,
   withCredentials: true,
-  // Reconnect automatically if the Railway container restarts
+  // Reconnect automatically if the backend container restarts
   reconnection: true,
   reconnectionAttempts: Infinity,
   reconnectionDelay: 2000,       // Wait 2s before first retry
