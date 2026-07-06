@@ -16,6 +16,35 @@ export class ReportsService {
     return this.prisma.report.findMany({ orderBy: { createdAt: 'desc' } });
   }
 
+  async getReportFile(id: number) {
+    const report = await this.prisma.report.findUnique({
+      where: { id },
+    });
+    if (!report) {
+      throw new Error('Report not found');
+    }
+
+    if (report.type === 'DAILY') {
+      const datePart = report.title.split(' - ')[1] || new Date(report.dateFrom).toISOString().split('T')[0];
+      const { buffer, filename } = await this.generateDailyReport(datePart, report.generatedBy);
+      return { buffer, filename };
+    } else if (report.type === 'MONTHLY') {
+      const monthPart = report.title.split(' - ')[1] || '';
+      let year = new Date(report.dateFrom).getFullYear();
+      let month = new Date(report.dateFrom).getMonth() + 1;
+      if (monthPart.includes('/')) {
+        const [yStr, mStr] = monthPart.split('/');
+        year = parseInt(yStr) || year;
+        month = parseInt(mStr) || month;
+      }
+      const { buffer, filename } = await this.generateMonthlyReport(year, month, report.generatedBy);
+      return { buffer, filename };
+    } else {
+      const { buffer, filename } = await this.generateInventoryReport(report.generatedBy);
+      return { buffer, filename };
+    }
+  }
+
   /** Generate daily consumption + purchase + wastage report as in-memory Excel buffer */
   async generateDailyReport(date: string, userId: number) {
     const [year, month, day] = date.split('-').map(Number);

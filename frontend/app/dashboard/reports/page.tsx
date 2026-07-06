@@ -22,6 +22,7 @@ export default function ReportsPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   // Form states
   const [reportType, setReportType] = useState('DAILY');
@@ -29,7 +30,26 @@ export default function ReportsPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
 
-  const API_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+  const handleDownloadReport = async (reportId: number, title: string) => {
+    try {
+      setDownloadingId(reportId);
+      const res = await reportsAPI.download(reportId);
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      const link = document.createElement('a');
+      link.href = url;
+      const cleanTitle = title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+      link.setAttribute('download', `${cleanTitle}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to download report:', err);
+      setError('Failed to download report. Please verify connection.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   useEffect(() => {
     fetchReports();
@@ -241,16 +261,14 @@ export default function ReportsPage() {
                       <td className="py-3.5 text-xs text-muted-foreground">{formatDate(report.createdAt)}</td>
                       <td className="py-3.5 text-xs font-mono">{report.format}</td>
                       <td className="py-3.5 text-right">
-                        <a
-                          href={`${API_URL}${report.fileUrl}`}
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium bg-muted hover:bg-primary hover:text-white rounded border border-border text-foreground transition-all"
+                        <button
+                          onClick={() => handleDownloadReport(report.id, report.title)}
+                          disabled={downloadingId === report.id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium bg-muted hover:bg-primary hover:text-white disabled:opacity-50 rounded border border-border text-foreground transition-all"
                         >
                           <Download className="w-3.5 h-3.5" />
-                          Download
-                        </a>
+                          {downloadingId === report.id ? 'Downloading...' : 'Download'}
+                        </button>
                       </td>
                     </tr>
                   ))}

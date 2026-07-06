@@ -96,6 +96,7 @@ export const reportsAPI = {
   generateDaily: (date: string) => api.post('/reports/daily', { date }),
   generateMonthly: (year: number, month: number) => api.post('/reports/monthly', { year, month }),
   generateInventoryValuation: () => api.post('/reports/inventory'),
+  download: (id: number) => api.get(`/reports/download/${id}`, { responseType: 'blob' }),
 };
 
 export const notificationsAPI = {

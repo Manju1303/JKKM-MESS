@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Body, Request, UseGuards, Res,
+  Controller, Get, Post, Body, Request, UseGuards, Res, Param, ParseIntPipe
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
@@ -24,6 +24,21 @@ export class ReportsController {
   @ApiOperation({ summary: 'Get all generated report records' })
   getAll() {
     return this.reportsService.getAll();
+  }
+
+  @Get('download/:id')
+  @ApiOperation({ summary: 'Download a generated report by ID' })
+  async downloadReport(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: any,
+  ) {
+    const { buffer, filename } = await this.reportsService.getReportFile(id);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
   }
 
   @Post('daily')
