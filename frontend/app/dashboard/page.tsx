@@ -371,13 +371,152 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 4. GENERAL FALLBACK DASHBOARD */}
-      {!['SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN'].includes(activeRole) && (
+      {/* 4. STOREKEEPER DASHBOARD */}
+      {activeRole === 'STOREKEEPER' && (
+        <div className="space-y-6">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatsCard title="Total Packaged Items" value={totalItems} subtitle="Seeded items in system" icon={<Package className="w-5 h-5" />} variant="primary" isLoading={loading} />
+            <StatsCard title="Low Stock Warnings" value={lowStockCount} subtitle="Needs PO immediately" icon={<AlertTriangle className="w-5 h-5" />} variant="danger" isLoading={loading} />
+            <StatsCard title="Expiring Soon (7d)" value={expiringCount} subtitle="Needs kitchen dispatch" icon={<Clock className="w-5 h-5" />} variant="warning" isLoading={loading} />
+            <StatsCard title="Portfolio Valuation" value={totalValue} subtitle="Estimated total stock value" icon={<IndianRupee className="w-5 h-5" />} variant="success" isLoading={loading} />
+          </section>
+
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-card border border-border p-6 rounded-xl flex flex-col justify-between">
+              <div>
+                <h3 className="font-bold text-foreground text-md mb-2">Storekeeper Quick Actions</h3>
+                <p className="text-xs text-muted-foreground mb-4">Core tools for inventory arrivals and dispatches:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Link href="/dashboard/barcode" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-[hsl(224,76%,48%)] text-white hover:bg-[hsl(224,76%,45%)] hover:scale-[1.01] active:scale-[0.99] text-sm font-semibold transition-all no-underline cursor-pointer select-none">
+                    <Camera className="w-4 h-4 flex-shrink-0" /> Barcode Scanner Entry
+                  </Link>
+                  <Link href="/dashboard/inventory" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] text-sm font-semibold transition-all no-underline cursor-pointer select-none">
+                    <Plus className="w-4 h-4 text-primary flex-shrink-0" /> Vegetables Manual Entry
+                  </Link>
+                  <Link href="/dashboard/products" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] text-sm font-semibold transition-all no-underline cursor-pointer select-none">
+                    <Package className="w-4 h-4 text-primary flex-shrink-0" /> View Products Catalog
+                  </Link>
+                  <Link href="/dashboard/purchases" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] text-sm font-semibold transition-all no-underline cursor-pointer select-none">
+                    <ClipboardList className="w-4 h-4 text-primary flex-shrink-0" /> Review Purchase Orders
+                  </Link>
+                </div>
+              </div>
+            </div>
+            <div className="bg-card border border-border p-6 rounded-xl flex flex-col justify-center">
+              <h3 className="font-bold text-foreground text-sm flex items-center gap-2 mb-2">
+                <AlertTriangle className="w-4 h-4 text-red-500" /> Stock Watch
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                You have {lowStockCount} items below minimum warning thresholds. Perform standard scans or PO auto-drafts to receive new inventory.
+              </p>
+              {lowStockCount > 0 && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-3 rounded-lg text-xs font-semibold">
+                  ⚠️ Alert: Low stocks detected!
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* 5. KITCHEN_STAFF DASHBOARD */}
+      {activeRole === 'KITCHEN_STAFF' && (
         <div className="space-y-6">
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatsCard title="Daily Menu Status" value={Object.keys(todayMenu).length > 0 ? "Configured" : "Not Set"} subtitle="Today's meal list" icon={<Calendar className="w-5 h-5" />} variant="primary" isLoading={loading} />
-            <StatsCard title="Unresolved Complaints" value={unresolvedComplaints} subtitle="Active support tickets" icon={<MessageSquare className="w-5 h-5" />} variant="warning" isLoading={loading} />
-            <StatsCard title="Connection Status" value="Online" subtitle="Database pooler active" icon={<CheckCircle className="w-5 h-5" />} variant="success" isLoading={loading} />
+            <StatsCard title="Daily Menu Status" value={Object.keys(todayMenu).length > 0 ? "Uploaded" : "Not Set"} subtitle="Today's menu details" icon={<Calendar className="w-5 h-5" />} variant="primary" isLoading={loading} />
+            <StatsCard title="Expiring Soon (7d)" value={expiringCount} subtitle="Needs kitchen dispatch" icon={<Clock className="w-5 h-5" />} variant="warning" isLoading={loading} />
+            <StatsCard title="Low Stock Ingredients" value={lowStockCount} subtitle="Items below limits" icon={<AlertTriangle className="w-5 h-5" />} variant="danger" isLoading={loading} />
+          </section>
+
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-card border border-border p-6 rounded-xl space-y-4">
+              <h3 className="font-semibold text-foreground text-md">Today's Cooking Schedule</h3>
+              {Object.keys(todayMenu).length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">No menu logs uploaded for today yet.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {Object.entries(todayMenu).map(([meal, items]) => (
+                    <div key={meal} className="p-3 bg-muted border border-border rounded-lg">
+                      <p className="text-xs font-bold text-primary uppercase tracking-wider">{meal}</p>
+                      <p className="text-sm text-foreground font-semibold mt-1">{items}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="bg-card border border-border p-6 rounded-xl space-y-4">
+              <h3 className="font-bold text-foreground text-md">Kitchen Operations</h3>
+              <p className="text-xs text-muted-foreground">Standard shortcuts for culinary logs:</p>
+              <div className="space-y-2">
+                <Link href="/dashboard/kitchen" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-primary text-white hover:bg-primary/90 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline border-0 outline-none cursor-pointer select-none">
+                  <ChefHat className="w-4 h-4 flex-shrink-0" /> Log Ingredient Dispatches
+                </Link>
+                <Link href="/dashboard/barcode" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline outline-none cursor-pointer select-none">
+                  <Camera className="w-4 h-4 text-primary flex-shrink-0" /> Verify Batch Expiries
+                </Link>
+                <Link href="/dashboard/menu" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline outline-none cursor-pointer select-none">
+                  <Calendar className="w-4 h-4 text-primary flex-shrink-0" /> View Detailed Planner
+                </Link>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* 6. ACCOUNTANT DASHBOARD */}
+      {activeRole === 'ACCOUNTANT' && (
+        <div className="space-y-6">
+          <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatsCard title="Portfolio Valuation" value={totalValue} subtitle="Estimated total stock value" icon={<IndianRupee className="w-5 h-5" />} variant="success" isLoading={loading} />
+            <StatsCard title="Total Categories" value={totalItems} subtitle="Active catalog items" icon={<Package className="w-5 h-5" />} variant="primary" isLoading={loading} />
+            <StatsCard title="Reorder Requirements" value={lowStockCount} subtitle="Active low stock metrics" icon={<AlertTriangle className="w-5 h-5" />} variant="warning" isLoading={loading} />
+          </section>
+
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-card border border-border p-6 rounded-xl">
+              <h3 className="font-semibold text-foreground text-md mb-4 flex items-center justify-between">
+                <span>Recent Operations Expense Trends</span>
+                <IndianRupee className="w-4 h-4 text-muted-foreground" />
+              </h3>
+              {monthlyExpenses.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-12 text-center">No expense logs calculated for this period.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={monthlyExpenses}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="amount" name="Expense (₹)" fill="hsl(142,71%,45%)" radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+            <div className="bg-card border border-border p-6 rounded-xl space-y-4 flex flex-col justify-between">
+              <div>
+                <h3 className="font-bold text-foreground text-md">Accounting Operations</h3>
+                <p className="text-xs text-muted-foreground mb-4">Financial auditing and PO reconciliation shortcuts:</p>
+                <div className="space-y-2">
+                  <Link href="/dashboard/reports" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-primary text-white hover:bg-primary/90 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline border-0 outline-none cursor-pointer select-none">
+                    <FileText className="w-4 h-4 flex-shrink-0" /> Valuation & Spend Reports
+                  </Link>
+                  <Link href="/dashboard/purchases" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline outline-none cursor-pointer select-none">
+                    <ClipboardList className="w-4 h-4 text-primary flex-shrink-0" /> Review Purchase Orders
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* 7. STUDENT & STUDENT_VIEWER DASHBOARD */}
+      {['STUDENT', 'STUDENT_VIEWER'].includes(activeRole) && (
+        <div className="space-y-6">
+          <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatsCard title="Daily Menu Setup" value={Object.keys(todayMenu).length > 0 ? "Configured" : "Not Set"} subtitle="Today's meal list ready" icon={<Calendar className="w-5 h-5" />} variant="primary" isLoading={loading} />
+            <StatsCard title="Active Complaints" value={unresolvedComplaints} subtitle="Tickets being checked" icon={<MessageSquare className="w-5 h-5" />} variant="warning" isLoading={loading} />
+            <StatsCard title="Kitchen Rating" value="A+ Verified" subtitle="Quality assurance standard" icon={<CheckCircle className="w-5 h-5" />} variant="success" isLoading={loading} />
           </section>
 
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -397,17 +536,26 @@ export default function DashboardPage() {
               )}
             </div>
             <div className="bg-card border border-border p-6 rounded-xl space-y-4">
-              <h3 className="font-bold text-foreground text-md">Quick Access Menu</h3>
-              <p className="text-xs text-muted-foreground">Standard actions for student/viewer portals:</p>
+              <h3 className="font-bold text-foreground text-md">Student Operations</h3>
+              <p className="text-xs text-muted-foreground">Shortcuts for student hostel viewer tools:</p>
               <div className="space-y-2">
                 <Link href="/dashboard/complaints" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-primary text-white hover:bg-primary/90 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline border-0 outline-none cursor-pointer select-none">
-                  <MessageSquare className="w-4 h-4 flex-shrink-0" /> File / Status of Complaints
+                  <MessageSquare className="w-4 h-4 flex-shrink-0" /> File a New Complaint
                 </Link>
                 <Link href="/dashboard/menu" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline outline-none cursor-pointer select-none">
                   <Calendar className="w-4 h-4 text-primary flex-shrink-0" /> View Complete Weekly Menu
                 </Link>
               </div>
             </div>
+          </section>
+        </div>
+      )}
+
+      {/* 8. GENERAL DEFAULTS FALLBACK */}
+      {!['SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN', 'STOREKEEPER', 'KITCHEN_STAFF', 'ACCOUNTANT', 'STUDENT', 'STUDENT_VIEWER'].includes(activeRole) && (
+        <div className="space-y-6">
+          <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatsCard title="Connection Status" value="Online" subtitle="Database pooler active" icon={<CheckCircle className="w-5 h-5" />} variant="success" isLoading={loading} />
           </section>
         </div>
       )}
