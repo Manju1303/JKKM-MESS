@@ -372,7 +372,7 @@ export default function DashboardPage() {
       )}
 
       {/* 4. STOREKEEPER DASHBOARD */}
-      {activeRole === 'STOREKEEPER' && (
+      {['STOREKEEPER', 'STORE_KEEPER'].includes(activeRole) && (
         <div className="space-y-6">
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatsCard title="Total Packaged Items" value={totalItems} subtitle="Seeded items in system" icon={<Package className="w-5 h-5" />} variant="primary" isLoading={loading} />
@@ -552,7 +552,7 @@ export default function DashboardPage() {
       )}
 
       {/* 8. GENERAL DEFAULTS FALLBACK */}
-      {!['SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN', 'STOREKEEPER', 'KITCHEN_STAFF', 'ACCOUNTANT', 'STUDENT', 'STUDENT_VIEWER'].includes(activeRole) && (
+      {!['SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN', 'STOREKEEPER', 'STORE_KEEPER', 'KITCHEN_STAFF', 'ACCOUNTANT', 'STUDENT', 'STUDENT_VIEWER'].includes(activeRole) && (
         <div className="space-y-6">
           <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatsCard title="Connection Status" value="Online" subtitle="Database pooler active" icon={<CheckCircle className="w-5 h-5" />} variant="success" isLoading={loading} />

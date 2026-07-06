@@ -32,25 +32,25 @@ const isRouteAllowed = (path: string, role: string) => {
   if (path === '/dashboard/notifications') return true;
 
   if (path === '/dashboard') {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN', 'STOREKEEPER', 'KITCHEN_STAFF', 'ACCOUNTANT', 'STUDENT', 'STUDENT_VIEWER'].includes(role);
+    return ['SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN', 'STOREKEEPER', 'STORE_KEEPER', 'KITCHEN_STAFF', 'ACCOUNTANT', 'STUDENT', 'STUDENT_VIEWER'].includes(role);
   }
   if (path.startsWith('/dashboard/inventory')) {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STOREKEEPER'].includes(role);
+    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STOREKEEPER', 'STORE_KEEPER'].includes(role);
   }
   if (path.startsWith('/dashboard/products')) {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STOREKEEPER'].includes(role);
+    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STOREKEEPER', 'STORE_KEEPER'].includes(role);
   }
   if (path.startsWith('/dashboard/purchases')) {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STOREKEEPER', 'ACCOUNTANT'].includes(role);
+    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STOREKEEPER', 'STORE_KEEPER', 'ACCOUNTANT'].includes(role);
   }
   if (path.startsWith('/dashboard/suppliers')) {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STOREKEEPER'].includes(role);
+    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STOREKEEPER', 'STORE_KEEPER'].includes(role);
   }
   if (path.startsWith('/dashboard/kitchen')) {
     return ['SUPER_ADMIN', 'MESS_MANAGER', 'KITCHEN_STAFF'].includes(role);
   }
   if (path.startsWith('/dashboard/barcode')) {
-    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STOREKEEPER', 'KITCHEN_STAFF'].includes(role);
+    return ['SUPER_ADMIN', 'MESS_MANAGER', 'STOREKEEPER', 'STORE_KEEPER', 'KITCHEN_STAFF'].includes(role);
   }
   if (path.startsWith('/dashboard/complaints')) {
     return ['SUPER_ADMIN', 'HOSTEL_WARDEN', 'STUDENT', 'STUDENT_VIEWER'].includes(role);

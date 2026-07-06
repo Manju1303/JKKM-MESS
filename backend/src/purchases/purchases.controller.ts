@@ -16,7 +16,7 @@ export class PurchasesController {
   constructor(private purchasesService: PurchasesService) { }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STOREKEEPER', 'ACCOUNTANT')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Get all purchase orders' })
   findAll() {
     return this.purchasesService.findAll();
@@ -30,7 +30,7 @@ export class PurchasesController {
   }
 
   @Get('auto-draft')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STOREKEEPER')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER')
   @ApiOperation({ summary: 'Generate AI recommended draft purchase order for stock deficits' })
   generateWeeklyDraft() {
     return this.purchasesService.generateDraftPO();
@@ -44,14 +44,14 @@ export class PurchasesController {
   }
 
   @Get(':id')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STOREKEEPER', 'ACCOUNTANT')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Get purchase order details' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.purchasesService.findById(id);
   }
 
   @Post()
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STOREKEEPER')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER')
   @ApiOperation({ summary: 'Create purchase order (status: PENDING)' })
   create(@Body() dto: CreatePurchaseDto, @Request() req: any) {
     return this.purchasesService.create(dto, req.user.userId);

@@ -54,33 +54,6 @@ const prisma = new PrismaClient({
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // ─── Clean Up Obsolete Users and Roles ──────────────────────────
-  await prisma.user.deleteMany({
-    where: {
-      email: {
-        in: [
-          'storekeeper@jkkm.edu.in',
-          'kitchen@jkkm.edu.in',
-          'accounts@jkkm.edu.in',
-          'student@jkkm.edu.in'
-        ]
-      }
-    }
-  });
-
-  await prisma.role.deleteMany({
-    where: {
-      name: {
-        in: [
-          'STORE_KEEPER',
-          'KITCHEN_STAFF',
-          'ACCOUNTANT',
-          'STUDENT_VIEWER'
-        ]
-      }
-    }
-  });
-
   // ─── Roles ───────────────────────────────────────────────────────
   const roles = await Promise.all([
     prisma.role.upsert({
@@ -97,6 +70,26 @@ async function main() {
       where: { name: 'HOSTEL_WARDEN' },
       update: {},
       create: { name: 'HOSTEL_WARDEN', description: 'Manage hostel attendance and complaints' },
+    }),
+    prisma.role.upsert({
+      where: { name: 'STORE_KEEPER' },
+      update: {},
+      create: { name: 'STORE_KEEPER', description: 'Manage stock checks and dispatches' },
+    }),
+    prisma.role.upsert({
+      where: { name: 'KITCHEN_STAFF' },
+      update: {},
+      create: { name: 'KITCHEN_STAFF', description: 'Kitchen culinary and batch logging' },
+    }),
+    prisma.role.upsert({
+      where: { name: 'ACCOUNTANT' },
+      update: {},
+      create: { name: 'ACCOUNTANT', description: 'Audit budgets, spends, and PO payments' },
+    }),
+    prisma.role.upsert({
+      where: { name: 'STUDENT_VIEWER' },
+      update: {},
+      create: { name: 'STUDENT_VIEWER', description: 'Student mess portal' },
     }),
   ]);
   console.log(`✅ Created/Updated ${roles.length} roles`);
@@ -167,6 +160,91 @@ async function main() {
     },
   });
   console.log(`✅ Warden user: ${warden.email}`);
+
+  // STOREKEEPER
+  const storekeeperPassword = await bcrypt.hash('Jkkm@Store2026', 10);
+  const storekeeper = await prisma.user.upsert({
+    where: { email: 'storekeeper@jkkm.edu.in' },
+    update: {
+      name: 'Mess Storekeeper',
+      password: storekeeperPassword,
+      roleId: getRoleId('STORE_KEEPER'),
+      failedLoginAttempts: 0,
+      lockUntil: null,
+    },
+    create: {
+      name: 'Mess Storekeeper',
+      email: 'storekeeper@jkkm.edu.in',
+      password: storekeeperPassword,
+      phone: '9876543212',
+      roleId: getRoleId('STORE_KEEPER'),
+    },
+  });
+  console.log(`✅ Storekeeper user: ${storekeeper.email}`);
+
+  // KITCHEN_STAFF
+  const kitchenPassword = await bcrypt.hash('Jkkm@Kitchen2026', 10);
+  const kitchen = await prisma.user.upsert({
+    where: { email: 'kitchen@jkkm.edu.in' },
+    update: {
+      name: 'Kitchen Chef',
+      password: kitchenPassword,
+      roleId: getRoleId('KITCHEN_STAFF'),
+      failedLoginAttempts: 0,
+      lockUntil: null,
+    },
+    create: {
+      name: 'Kitchen Chef',
+      email: 'kitchen@jkkm.edu.in',
+      password: kitchenPassword,
+      phone: '9876543213',
+      roleId: getRoleId('KITCHEN_STAFF'),
+    },
+  });
+  console.log(`✅ Kitchen user: ${kitchen.email}`);
+
+  // ACCOUNTANT
+  const accountsPassword = await bcrypt.hash('Jkkm@Accounts2026', 10);
+  const accountant = await prisma.user.upsert({
+    where: { email: 'accounts@jkkm.edu.in' },
+    update: {
+      name: 'Mess Accountant',
+      password: accountsPassword,
+      roleId: getRoleId('ACCOUNTANT'),
+      failedLoginAttempts: 0,
+      lockUntil: null,
+    },
+    create: {
+      name: 'Mess Accountant',
+      email: 'accounts@jkkm.edu.in',
+      password: accountsPassword,
+      phone: '9876543214',
+      roleId: getRoleId('ACCOUNTANT'),
+    },
+  });
+  console.log(`✅ Accountant user: ${accountant.email}`);
+
+  // STUDENT
+  const studentPassword = await bcrypt.hash('Jkkm@Student2026', 10);
+  const student = await prisma.user.upsert({
+    where: { email: 'student@jkkm.edu.in' },
+    update: {
+      name: 'Student Guest',
+      password: studentPassword,
+      roleId: getRoleId('STUDENT_VIEWER'),
+      failedLoginAttempts: 0,
+      lockUntil: null,
+    },
+    create: {
+      name: 'Student Guest',
+      email: 'student@jkkm.edu.in',
+      password: studentPassword,
+      phone: '9876543215',
+      roleId: getRoleId('STUDENT_VIEWER'),
+    },
+  });
+  console.log(`✅ Student user: ${student.email}`);
+
   console.log('✅ Demo users created');
 
   // ─── Categories ───────────────────────────────────────────────────
