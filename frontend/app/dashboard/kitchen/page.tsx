@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { kitchenAPI, productsAPI, inventoryAPI } from '@/lib/api';
+import { kitchenAPI, productsAPI, inventoryAPI, aiAPI } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
-import { Plus, Search, ChefHat, Calendar, Users, Percent, Clock, AlertCircle, CheckCircle2, TrendingUp, DollarSign } from 'lucide-react';
+import { Plus, Search, ChefHat, Calendar, Users, Percent, Clock, AlertCircle, CheckCircle2, TrendingUp, DollarSign, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
@@ -48,6 +48,27 @@ export default function KitchenPage() {
   const [fefoWarning, setFefoWarning] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // AI assistant state
+  const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [targetHeadcount, setTargetHeadcount] = useState('');
+
+  const fetchSuggestions = async (count: number) => {
+    if (!count) {
+      setAiSuggestions([]);
+      return;
+    }
+    try {
+      setAiLoading(true);
+      const res = await aiAPI.getAttendanceForecast(count);
+      setAiSuggestions(res.data || []);
+    } catch (err) {
+      console.error('Failed to load AI suggestions:', err);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -268,6 +289,73 @@ export default function KitchenPage() {
                   <span>{submitError}</span>
                 </div>
               )}
+
+              {/* AI Prediction Assistant */}
+              <div className="p-3 bg-gradient-to-br from-primary/10 to-card border border-primary/20 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-primary flex items-center gap-1">
+                    <Brain className="w-3.5 h-3.5" />
+                    AI Prediction Assistant
+                  </label>
+                  {aiLoading && <Clock className="w-3 h-3 animate-spin text-primary" />}
+                </div>
+                <div className="space-y-1">
+                  <input
+                    type="number"
+                    placeholder="Enter expected headcount..."
+                    value={targetHeadcount}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setTargetHeadcount(val);
+                      if (val) {
+                        fetchSuggestions(Number(val));
+                      } else {
+                        setAiSuggestions([]);
+                      }
+                    }}
+                    className="w-full px-3 py-1.5 text-xs rounded-lg bg-muted border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <p className="text-[10px] text-muted-foreground leading-normal mt-0.5">
+                    Analyzes waste history & occupancy trends to minimize ingredient loss.
+                  </p>
+                </div>
+                {aiSuggestions.length > 0 && (
+                  <div className="max-h-36 overflow-y-auto space-y-1.5 scrollbar-thin mt-1 border-t border-border/40 pt-1.5">
+                    {aiSuggestions.map((s) => (
+                      <button
+                        key={s.productId}
+                        type="button"
+                        onClick={() => {
+                          setForm((prev) => ({
+                            ...prev,
+                            productId: String(s.productId),
+                            quantity: String(s.predictedMealNeed),
+                            headcount: targetHeadcount,
+                            notes: `AI-forecasted for ${targetHeadcount} students (Factor: ${s.adjustmentFactorApplied ?? 1}x)`,
+                          }));
+                          // Auto select first available batch if possible
+                          const batches = inventoryItems.filter(item => item.productId === s.productId && item.quantity > 0 && !item.isExpired);
+                          if (batches.length > 0) {
+                            setForm((prev) => ({
+                              ...prev,
+                              productId: String(s.productId),
+                              quantity: String(s.predictedMealNeed),
+                              headcount: targetHeadcount,
+                              batchNumber: batches[0].batchNumber || '',
+                              notes: `AI-forecasted for ${targetHeadcount} students (Factor: ${s.adjustmentFactorApplied ?? 1}x)`,
+                            }));
+                            checkFEFOCompliance(String(s.productId), batches[0].batchNumber || '');
+                          }
+                        }}
+                        className="w-full text-[10px] text-left p-1.5 rounded-lg bg-muted/50 hover:bg-primary/10 border border-border/80 flex items-center justify-between transition-all"
+                      >
+                        <span className="font-semibold text-foreground truncate max-w-[125px]">{s.productName}</span>
+                        <span className="text-primary font-bold">{s.predictedMealNeed} {s.unit}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Product *</label>

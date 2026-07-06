@@ -366,6 +366,107 @@ async function main() {
   }
   console.log('✅ Suppliers seeded');
 
+  // ─── Daily Issues, Consumption Logs, and Wastage Seeding ──────────────
+  const dbRice = await prisma.product.findFirst({ where: { name: 'Ponni Rice' } });
+  const dbTomatoes = await prisma.product.findFirst({ where: { name: 'Tomatoes' } });
+  const dbMilk = await prisma.product.findFirst({ where: { name: 'Fresh Milk' } });
+  const dbKitchenUser = await prisma.user.findFirst({ where: { email: 'kitchen@jkkm.edu.in' } });
+
+  if (dbRice && dbTomatoes && dbMilk && dbKitchenUser) {
+    const today = new Date();
+
+    // Clear legacy entries to prevent constraint duplication
+    await prisma.consumptionLog.deleteMany({});
+    await prisma.dailyIssue.deleteMany({});
+    await prisma.wastage.deleteMany({});
+
+    // Seed issues + consumption for past 15 days
+    for (let i = 0; i < 15; i++) {
+      const issueDate = new Date();
+      issueDate.setDate(today.getDate() - i);
+      const randomHeadcount = Math.floor(600 + Math.random() * 200); // 600 - 800 students
+
+      const riceQty = Math.round((randomHeadcount * 0.15) * 100) / 100; // 0.15 kg per student
+      const tomatoQty = Math.round((randomHeadcount * 0.04) * 100) / 100; // 0.04 kg per student
+
+      const issueRice = await prisma.dailyIssue.create({
+        data: {
+          productId: dbRice.id,
+          quantity: riceQty,
+          unit: dbRice.unit,
+          meal: 'LUNCH',
+          issuedById: dbKitchenUser.id,
+          issueDate,
+        }
+      });
+      await prisma.consumptionLog.create({
+        data: {
+          dailyIssueId: issueRice.id,
+          productId: dbRice.id,
+          quantity: riceQty,
+          unit: dbRice.unit,
+          meal: 'LUNCH',
+          date: issueDate,
+          headcount: randomHeadcount,
+          perHeadUsage: Math.round((riceQty / randomHeadcount) * 10000) / 10000,
+        }
+      });
+
+      const issueTom = await prisma.dailyIssue.create({
+        data: {
+          productId: dbTomatoes.id,
+          quantity: tomatoQty,
+          unit: dbTomatoes.unit,
+          meal: 'LUNCH',
+          issuedById: dbKitchenUser.id,
+          issueDate,
+        }
+      });
+      await prisma.consumptionLog.create({
+        data: {
+          dailyIssueId: issueTom.id,
+          productId: dbTomatoes.id,
+          quantity: tomatoQty,
+          unit: dbTomatoes.unit,
+          meal: 'LUNCH',
+          date: issueDate,
+          headcount: randomHeadcount,
+          perHeadUsage: Math.round((tomatoQty / randomHeadcount) * 10000) / 10000,
+        }
+      });
+    }
+
+    await prisma.wastage.createMany({
+      data: [
+        {
+          productId: dbRice.id,
+          quantity: 25.0,
+          unit: dbRice.unit,
+          valueAmount: 1250,
+          reason: 'OVER_PREPARATION',
+          reportedAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000),
+        },
+        {
+          productId: dbRice.id,
+          quantity: 15.0,
+          unit: dbRice.unit,
+          valueAmount: 750,
+          reason: 'OVER_PREPARATION',
+          reportedAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000),
+        },
+        {
+          productId: dbTomatoes.id,
+          quantity: 10.0,
+          unit: dbTomatoes.unit,
+          valueAmount: 300,
+          reason: 'OVER_PREPARATION',
+          reportedAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000),
+        }
+      ]
+    });
+    console.log('✅ Seeded demo DailyIssues, ConsumptionLogs and Wastage entries');
+  }
+
   console.log('\n🎉 Database seeded successfully!');
   console.log('📧 Admin login: admin@jkkm.edu.in / Jkkm@Admin2026');
   console.log('📧 Manager login: messmanager@jkkm.edu.in / Jkkm@Mess2026');

@@ -59,10 +59,16 @@ export default function MenuPage() {
     if (!form.items) return;
     try {
       setSubmitting(true);
+      const itemsArray = form.items.split(',').map(item => item.trim()).filter(Boolean);
+      const payload = {
+        ...form,
+        items: JSON.stringify(itemsArray)
+      };
+
       if (editingId) {
-        await menuAPI.update(editingId, form);
+        await menuAPI.update(editingId, payload);
       } else {
-        await menuAPI.create(form);
+        await menuAPI.create(payload);
       }
       setShowForm(false);
       setEditingId(null);
@@ -74,7 +80,7 @@ export default function MenuPage() {
       });
       fetchMenus();
     } catch (err) {
-      setError('Failed to save menu plan.');
+      setError('Failed to save menu plan. Please verify authentication and JSON format.');
     } finally {
       setSubmitting(false);
     }
@@ -82,10 +88,19 @@ export default function MenuPage() {
 
   const handleEdit = (menu: MenuItem) => {
     setEditingId(menu.id);
+    let itemsStr = menu.items;
+    try {
+      const parsed = JSON.parse(menu.items);
+      if (Array.isArray(parsed)) {
+        itemsStr = parsed.join(', ');
+      }
+    } catch {
+      // Keep raw string format
+    }
     setForm({
       date: menu.date.split('T')[0],
       meal: menu.meal,
-      items: menu.items,
+      items: itemsStr,
       notes: menu.notes || '',
     });
     setShowForm(true);
@@ -244,11 +259,24 @@ export default function MenuPage() {
                   <div className="space-y-1">
                     <p className="text-sm font-semibold text-foreground">Menu Items</p>
                     <div className="flex flex-wrap gap-1">
-                      {menu.items.split(',').map((item, idx) => (
-                        <span key={idx} className="text-[10px] bg-muted px-2 py-0.5 rounded-full text-foreground/80">
-                          {item.trim()}
-                        </span>
-                      ))}
+                      {(() => {
+                        let itemsList: string[] = [];
+                        try {
+                          const parsed = JSON.parse(menu.items);
+                          if (Array.isArray(parsed)) {
+                            itemsList = parsed;
+                          } else {
+                            itemsList = menu.items.split(',');
+                          }
+                        } catch {
+                          itemsList = menu.items.split(',');
+                        }
+                        return itemsList.map((item, idx) => (
+                          <span key={idx} className="text-[10px] bg-muted px-2 py-0.5 rounded-full text-foreground/80">
+                            {item.trim()}
+                          </span>
+                        ));
+                      })()}
                     </div>
                   </div>
 

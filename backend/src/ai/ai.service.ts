@@ -11,7 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
  */
 @Injectable()
 export class AiService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   // ─── Internal helpers (accept pre-fetched data to avoid duplicate queries) ───
 
@@ -236,17 +236,32 @@ export class AiService {
     }
   }
 
-  /** Forecast requirement based on user-input student count */
+  /** Forecast requirement based on user-input student count, optimizing requirements based on over-preparation waste trends. */
   async getAttendanceBasedForecasting(headcount: number) {
     try {
-      const logs = await this.prisma.consumptionLog.findMany({
-        where: { headcount: { gt: 0 } },
-        include: { dailyIssue: { include: { product: true } } },
+      const [logs, overPrepWastage] = await Promise.all([
+        this.prisma.consumptionLog.findMany({
+          where: { headcount: { gt: 0 } },
+          include: { dailyIssue: { include: { product: true } } },
+        }),
+        this.prisma.wastage.findMany({
+          where: { reason: 'OVER_PREPARATION' },
+          select: { productId: true, quantity: true },
+        }),
+      ]);
+
+      // Calculate total over-preparation waste per product
+      const productWasteMap = new Map<number, number>();
+      overPrepWastage.forEach((w) => {
+        productWasteMap.set(w.productId, (productWasteMap.get(w.productId) || 0) + w.quantity);
       });
 
       if (logs.length === 0) {
         const perStudent = await this.getPerStudentConsumption();
         return perStudent.map((p) => {
+          // Adjust based on waste if product exists in waste map
+          const wastedQty = productWasteMap.get(p.productId) || 0;
+          // Estimate a dynamic adjustment factor based on total consumption issues
           const singleMealQty = p.avgPerStudentMeal * headcount;
           const dailyQty = singleMealQty * 3;
           return {
@@ -257,6 +272,8 @@ export class AiService {
             predictedMealNeed: Math.round(singleMealQty * 100) / 100,
             predictedDailyNeed: Math.round(dailyQty * 100) / 100,
             predictedWeeklyNeed: Math.round(dailyQty * 7 * 100) / 100,
+            wastedQtyEstimate: Math.round(wastedQty * 100) / 100,
+            adjustmentFactorApplied: 1.0,
           };
         });
       }
@@ -286,9 +303,17 @@ export class AiService {
         Object.values(mealsMap).forEach((m) => {
           if (m.totalHeadcount > 0) sumPerStudentDaily += m.totalQty / m.totalHeadcount;
         });
-        const overallAvgPerMeal = info.totalHeadcount > 0 ? info.totalQty / info.totalHeadcount : 0;
+
+        // Learn from wastage: calculate waste ratio and apply adjustment factor (max 30% reduction to ensure safety)
+        const totalWasted = productWasteMap.get(productId) || 0;
+        const totalIssued = info.totalQty || 0;
+        const wasteRatio = totalIssued > 0 ? Math.min(0.30, totalWasted / totalIssued) : 0;
+        const adjustmentFactor = 1 - wasteRatio;
+
+        const overallAvgPerMeal = (info.totalHeadcount > 0 ? info.totalQty / info.totalHeadcount : 0) * adjustmentFactor;
         const singleMealQty = overallAvgPerMeal * headcount;
-        const dailyQty = sumPerStudentDaily * headcount;
+        const dailyQty = sumPerStudentDaily * headcount * adjustmentFactor;
+
         return {
           productId,
           productName: info.name,
@@ -297,6 +322,8 @@ export class AiService {
           predictedMealNeed: Math.round(singleMealQty * 100) / 100,
           predictedDailyNeed: Math.round(dailyQty * 100) / 100,
           predictedWeeklyNeed: Math.round(dailyQty * 7 * 100) / 100,
+          wastedQtyEstimate: Math.round(totalWasted * 100) / 100,
+          adjustmentFactorApplied: Math.round(adjustmentFactor * 100) / 100,
         };
       });
     } catch {

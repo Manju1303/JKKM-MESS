@@ -1,4 +1,24 @@
 const dns = require('dns');
+const path = require('path');
+const fs = require('fs');
+
+const envPath = path.join(__dirname, '../.env');
+if (fs.existsSync(envPath)) {
+    const fileContent = fs.readFileSync(envPath, 'utf8');
+    fileContent.split(/\r?\n/).forEach((line) => {
+        const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+        if (match) {
+            const key = match[1];
+            let value = match[2] || '';
+            if (value.startsWith('"') && value.endsWith('"')) {
+                value = value.slice(1, -1);
+            } else if (value.startsWith("'") && value.endsWith("'")) {
+                value = value.slice(1, -1);
+            }
+            process.env[key] = value;
+        }
+    });
+}
 const { PrismaClient } = require('@prisma/client');
 
 // Apply DNS overrides to avoid local connection timeouts on Neon/Supabase DB
@@ -39,6 +59,11 @@ function sanitizeDatabaseUrl(url) {
     }
 }
 
+console.log("ENV PATH:", envPath, "EXISTS?", fs.existsSync(envPath));
+console.log("DATABASE_URL PRESENT?", !!process.env.DATABASE_URL);
+if (process.env.DATABASE_URL) {
+    console.log("DATABASE_URL HOST:", process.env.DATABASE_URL.split('@')[1] || 'no-host-parts');
+}
 const prisma = new PrismaClient({
     datasources: {
         db: {
