@@ -209,7 +209,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   else if (user?.role === 'MESS_MANAGER') router.push('/dashboard/inventory');
                   else router.push('/dashboard');
                 }}
-                className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/95 transition-all shadow-md"
+                className="inline-flex items-center justify-center px-6 py-3 text-xs font-bold uppercase tracking-wider text-white rounded-lg bg-primary hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md cursor-pointer select-none no-underline border-0 outline-none"
               >
                 Go to Default Dashboard
               </button>

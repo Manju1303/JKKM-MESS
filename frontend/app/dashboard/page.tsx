@@ -400,11 +400,11 @@ export default function DashboardPage() {
               <h3 className="font-bold text-foreground text-md">Quick Access Menu</h3>
               <p className="text-xs text-muted-foreground">Standard actions for student/viewer portals:</p>
               <div className="space-y-2">
-                <Link href="/dashboard/complaints" className="flex items-center gap-2 p-2.5 rounded bg-primary text-white hover:bg-primary/95 text-sm font-semibold transition-all">
-                  <MessageSquare className="w-4 h-4" /> File / Status of Complaints
+                <Link href="/dashboard/complaints" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-primary text-white hover:bg-primary/90 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline border-0 outline-none cursor-pointer select-none">
+                  <MessageSquare className="w-4 h-4 flex-shrink-0" /> File / Status of Complaints
                 </Link>
-                <Link href="/dashboard/menu" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
-                  <Calendar className="w-4 h-4 text-primary" /> View Complete Weekly Menu
+                <Link href="/dashboard/menu" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline outline-none cursor-pointer select-none">
+                  <Calendar className="w-4 h-4 text-primary flex-shrink-0" /> View Complete Weekly Menu
                 </Link>
               </div>
             </div>
