@@ -60,14 +60,19 @@ function sanitizeDatabaseUrl(url) {
 }
 
 console.log("ENV PATH:", envPath, "EXISTS?", fs.existsSync(envPath));
-console.log("DATABASE_URL PRESENT?", !!process.env.DATABASE_URL);
-if (process.env.DATABASE_URL) {
-    console.log("DATABASE_URL HOST:", process.env.DATABASE_URL.split('@')[1] || 'no-host-parts');
+
+// Allow targeting production DB via PROD_DATABASE_URL env var
+// Usage: set PROD_DATABASE_URL=postgresql://... && node tools/fix-roles.js
+const targetUrl = process.env.PROD_DATABASE_URL || process.env.DATABASE_URL;
+console.log("DATABASE_URL PRESENT?", !!targetUrl);
+if (targetUrl) {
+    const hostPart = targetUrl.split('@')[1] || 'no-host-parts';
+    console.log("DATABASE_URL HOST:", hostPart.split('?')[0]);
 }
 const prisma = new PrismaClient({
     datasources: {
         db: {
-            url: sanitizeDatabaseUrl(process.env.DATABASE_URL),
+            url: sanitizeDatabaseUrl(targetUrl),
         },
     },
 });

@@ -54,48 +54,34 @@ const prisma = new PrismaClient({
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // ─── Roles ───────────────────────────────────────────────────────
-  const roles = await Promise.all([
-    prisma.role.upsert({
-      where: { name: 'SUPER_ADMIN' },
+  // ─── Roles (sequential to guarantee deterministic IDs) ────────────────
+  const roleDefinitions = [
+    { name: 'SUPER_ADMIN', description: 'Full system access' },
+    { name: 'MESS_MANAGER', description: 'Manage purchases, inventory, reports' },
+    { name: 'HOSTEL_WARDEN', description: 'Manage hostel attendance and complaints' },
+    { name: 'STORE_KEEPER', description: 'Manage stock checks and dispatches' },
+    { name: 'KITCHEN_STAFF', description: 'Kitchen culinary and batch logging' },
+    { name: 'ACCOUNTANT', description: 'Audit budgets, spends, and PO payments' },
+    { name: 'STUDENT_VIEWER', description: 'Student mess portal' },
+  ];
+  const roles: { id: number; name: string }[] = [];
+  for (const def of roleDefinitions) {
+    const role = await prisma.role.upsert({
+      where: { name: def.name },
       update: {},
-      create: { name: 'SUPER_ADMIN', description: 'Full system access' },
-    }),
-    prisma.role.upsert({
-      where: { name: 'MESS_MANAGER' },
-      update: {},
-      create: { name: 'MESS_MANAGER', description: 'Manage purchases, inventory, reports' },
-    }),
-    prisma.role.upsert({
-      where: { name: 'HOSTEL_WARDEN' },
-      update: {},
-      create: { name: 'HOSTEL_WARDEN', description: 'Manage hostel attendance and complaints' },
-    }),
-    prisma.role.upsert({
-      where: { name: 'STORE_KEEPER' },
-      update: {},
-      create: { name: 'STORE_KEEPER', description: 'Manage stock checks and dispatches' },
-    }),
-    prisma.role.upsert({
-      where: { name: 'KITCHEN_STAFF' },
-      update: {},
-      create: { name: 'KITCHEN_STAFF', description: 'Kitchen culinary and batch logging' },
-    }),
-    prisma.role.upsert({
-      where: { name: 'ACCOUNTANT' },
-      update: {},
-      create: { name: 'ACCOUNTANT', description: 'Audit budgets, spends, and PO payments' },
-    }),
-    prisma.role.upsert({
-      where: { name: 'STUDENT_VIEWER' },
-      update: {},
-      create: { name: 'STUDENT_VIEWER', description: 'Student mess portal' },
-    }),
-  ]);
+      create: def,
+    });
+    roles.push(role);
+  }
   console.log(`✅ Created/Updated ${roles.length} roles`);
 
-  // Helper to find role ID by name
-  const getRoleId = (name: string) => roles.find((r) => r.name === name)!.id;
+  // Reliable name-based role lookup (never depends on array index or ID order)
+  const roleMap = new Map(roles.map((r) => [r.name, r.id]));
+  const getRoleId = (name: string): number => {
+    const id = roleMap.get(name);
+    if (id === undefined) throw new Error(`Role "${name}" not found in database`);
+    return id;
+  };
 
   // ─── Demo Users ───────────────────────────────────────────────────
   // SUPER_ADMIN
