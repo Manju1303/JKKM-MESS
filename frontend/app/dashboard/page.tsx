@@ -370,6 +370,47 @@ export default function DashboardPage() {
           </section>
         </div>
       )}
+
+      {/* 4. GENERAL FALLBACK DASHBOARD */}
+      {!['SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN'].includes(activeRole) && (
+        <div className="space-y-6">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <StatsCard title="Daily Menu Status" value={Object.keys(todayMenu).length > 0 ? "Configured" : "Not Set"} subtitle="Today's meal list" icon={<Calendar className="w-5 h-5" />} variant="primary" isLoading={loading} />
+            <StatsCard title="Unresolved Complaints" value={unresolvedComplaints} subtitle="Active support tickets" icon={<MessageSquare className="w-5 h-5" />} variant="warning" isLoading={loading} />
+            <StatsCard title="Connection Status" value="Online" subtitle="Database pooler active" icon={<CheckCircle className="w-5 h-5" />} variant="success" isLoading={loading} />
+          </section>
+
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-card border border-border p-6 rounded-xl space-y-4">
+              <h3 className="font-semibold text-foreground text-md">Today's Menu Schedule</h3>
+              {Object.keys(todayMenu).length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">No menu logs uploaded for today yet.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {Object.entries(todayMenu).map(([meal, items]) => (
+                    <div key={meal} className="p-3 bg-muted border border-border rounded-lg">
+                      <p className="text-xs font-bold text-primary uppercase tracking-wider">{meal}</p>
+                      <p className="text-sm text-foreground font-semibold mt-1">{items}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="bg-card border border-border p-6 rounded-xl space-y-4">
+              <h3 className="font-bold text-foreground text-md">Quick Access Menu</h3>
+              <p className="text-xs text-muted-foreground">Standard actions for student/viewer portals:</p>
+              <div className="space-y-2">
+                <Link href="/dashboard/complaints" className="flex items-center gap-2 p-2.5 rounded bg-primary text-white hover:bg-primary/95 text-sm font-semibold transition-all">
+                  <MessageSquare className="w-4 h-4" /> File / Status of Complaints
+                </Link>
+                <Link href="/dashboard/menu" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
+                  <Calendar className="w-4 h-4 text-primary" /> View Complete Weekly Menu
+                </Link>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
