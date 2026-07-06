@@ -22,7 +22,7 @@ export class KitchenController {
   }
 
   @Post('issue')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
+  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'KITCHEN_STAFF')
   @ApiOperation({ summary: 'Issue stock from store to kitchen (auto-deducts inventory)' })
   issueStock(@Body() dto: CreateKitchenIssueDto, @Request() req: any) {
     return this.kitchenService.issueStock(dto, req.user.userId);
