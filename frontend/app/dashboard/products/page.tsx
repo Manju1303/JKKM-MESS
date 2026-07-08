@@ -34,7 +34,14 @@ export default function ProductsPage() {
 
   useEffect(() => {
     productsAPI.getAll()
-      .then(res => setProducts(res.data || []))
+      .then(res => {
+        const mapped = (res.data || []).map((p: any) => ({
+          ...p,
+          categoryName: p.category?.name || 'Unknown',
+          purchasePrice: p.purchasePrice || 0,
+        }));
+        setProducts(mapped);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

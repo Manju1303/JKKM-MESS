@@ -53,7 +53,11 @@ export default function SettingsPage() {
 
       const res = await usersAPI.update(user.id, payload);
       if (res.data && token) {
-        setAuth(res.data, token); // update zustand state
+        const updatedUser = {
+          ...res.data,
+          role: typeof res.data.role === 'object' && res.data.role ? res.data.role.name : res.data.role,
+        };
+        setAuth(updatedUser, token); // update zustand state
         setStatusMsg({ type: 'success', text: 'Profile updated successfully!' });
         setPassword('');
         setConfirmPassword('');

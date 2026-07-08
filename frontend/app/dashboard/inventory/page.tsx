@@ -79,7 +79,19 @@ export default function InventoryPage() {
     else setRefreshing(true);
     try {
       const res = await inventoryAPI.getAll();
-      setItems(res.data || []);
+      const mapped = (res.data || []).map((i: any) => ({
+        id: i.id,
+        productName: i.product?.name || 'Unknown',
+        categoryName: i.product?.category?.name || 'Unknown',
+        quantity: i.quantity,
+        unit: i.unit || i.product?.unit || '',
+        minStockLevel: i.product?.minStockLevel || 0,
+        expiryDate: i.expiryDate,
+        purchasePrice: i.costPerUnit ?? 0,
+        batchNumber: i.batchNumber,
+        location: i.location,
+      }));
+      setItems(mapped);
     } catch {
       // API not connected – keep empty state
     } finally {

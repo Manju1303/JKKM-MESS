@@ -189,7 +189,7 @@ export default function ComplaintsPage() {
 
                 {item.status === 'RESOLVED' && (
                   <p className="text-[10px] text-green-500 font-medium">
-                    ✓ Resolved on {new Date(item.resolvedAt!).toLocaleDateString('en-IN')}
+                    ✓ Resolved on {new Date(item.resolvedAt || item.createdAt).toLocaleDateString('en-IN')}
                   </p>
                 )}
               </div>

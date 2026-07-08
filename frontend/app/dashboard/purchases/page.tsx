@@ -36,7 +36,17 @@ export default function PurchasesPage() {
     try {
       setLoading(true);
       const res = await purchasesAPI.getAll();
-      setPurchases(res.data || []);
+      const mapped = (res.data || []).map((p: any) => ({
+        id: p.id,
+        invoiceNumber: p.purchaseNumber || `PO-${p.id}`,
+        supplierName: p.supplier?.name || 'Unknown',
+        totalAmount: p.netAmount || p.totalAmount || 0,
+        status: (p.status || 'pending').toLowerCase(),
+        createdAt: p.createdAt,
+        deliveryDate: p.purchaseDate,
+        notes: p.notes,
+      }));
+      setPurchases(mapped);
     } catch { } finally {
       setLoading(false);
     }

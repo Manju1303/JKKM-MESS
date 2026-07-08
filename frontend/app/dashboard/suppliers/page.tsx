@@ -26,15 +26,22 @@ export default function SuppliersPage() {
 
   useEffect(() => {
     suppliersAPI.getAll()
-      .then(res => setSuppliers(res.data || []))
+      .then(res => {
+        const mapped = (res.data || []).map((s: any) => ({
+          ...s,
+          totalOrders: s._count?.purchases || 0,
+          totalSpend: s.totalSpend || 0,
+        }));
+        setSuppliers(mapped);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const filtered = suppliers.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
+    (s.name || '').toLowerCase().includes(search.toLowerCase()) ||
     s.contactPerson?.toLowerCase().includes(search.toLowerCase()) ||
-    s.phone.includes(search)
+    (s.phone || '').includes(search)
   );
 
   const totalSpend = suppliers.reduce((sum, s) => sum + (s.totalSpend || 0), 0);
