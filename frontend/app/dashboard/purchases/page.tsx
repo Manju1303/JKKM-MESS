@@ -77,13 +77,13 @@ export default function PurchasesPage() {
     const matchSearch =
       p.supplierName.toLowerCase().includes(search.toLowerCase()) ||
       p.invoiceNumber?.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'all' || p.status === statusFilter;
+    const matchStatus = statusFilter === 'all' || (p.status || '').toLowerCase() === statusFilter.toLowerCase();
     return matchSearch && matchStatus;
   });
 
   const totalSpend = purchases.reduce((s, p) => s + p.totalAmount, 0);
-  const pendingCount = purchases.filter(p => p.status === 'pending').length;
-  const approvedCount = purchases.filter(p => p.status === 'approved').length;
+  const pendingCount = purchases.filter(p => (p.status || '').toLowerCase() === 'pending').length;
+  const approvedCount = purchases.filter(p => (p.status || '').toLowerCase() === 'approved').length;
 
   const handleApprove = async (id: number) => {
     try {
@@ -200,7 +200,8 @@ export default function PurchasesPage() {
                 </tr>
               ) : (
                 filtered.map(p => {
-                  const cfg = statusConfig[p.status] || statusConfig.pending;
+                  const normalizedStatus = (p.status || '').toLowerCase() as keyof typeof statusConfig;
+                  const cfg = statusConfig[normalizedStatus] || statusConfig.pending;
                   const StatusIcon = cfg.icon;
                   return (
                     <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
@@ -222,7 +223,7 @@ export default function PurchasesPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <button className="text-xs text-primary hover:underline">View</button>
-                          {p.status === 'pending' && (
+                          {(p.status || '').toLowerCase() === 'pending' && (
                             <button
                               onClick={() => handleApprove(p.id)}
                               className="text-xs text-green-500 hover:underline"

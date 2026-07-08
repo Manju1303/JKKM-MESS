@@ -16,14 +16,17 @@ export class ComplaintsController {
   constructor(private readonly complaintsService: ComplaintsService) { }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'HOSTEL_WARDEN')
-  @ApiOperation({ summary: 'Get complaints (Warden/Admin gets all)' })
-  findAll() {
-    return this.complaintsService.findAll();
+  @Roles('SUPER_ADMIN', 'HOSTEL_WARDEN', 'STUDENT', 'STUDENT_VIEWER')
+  @ApiOperation({ summary: 'Get complaints (Warden/Admin gets all, Student gets their own)' })
+  findAll(@Request() req: any) {
+    if (['SUPER_ADMIN', 'HOSTEL_WARDEN'].includes(req.user.role)) {
+      return this.complaintsService.findAll();
+    }
+    return this.complaintsService.findByStudent(req.user.userId);
   }
 
   @Post()
-  @Roles('SUPER_ADMIN', 'HOSTEL_WARDEN')
+  @Roles('SUPER_ADMIN', 'HOSTEL_WARDEN', 'STUDENT', 'STUDENT_VIEWER')
   @ApiOperation({ summary: 'Submit a new complaint' })
   create(@Body() dto: CreateComplaintDto, @Request() req: any) {
     return this.complaintsService.create(dto, req.user.userId, req.user.name);
