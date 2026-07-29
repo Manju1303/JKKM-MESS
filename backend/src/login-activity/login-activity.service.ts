@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class LoginActivityService {
@@ -7,7 +7,7 @@ export class LoginActivityService {
 
   async findAll() {
     return this.prisma.loginActivity.findMany({
-      orderBy: { timestamp: 'desc' },
+      orderBy: { timestamp: "desc" },
     });
   }
 
@@ -16,10 +16,10 @@ export class LoginActivityService {
       where: {
         email: {
           contains: email,
-          mode: 'insensitive',
+          mode: "insensitive",
         },
       },
-      orderBy: { timestamp: 'desc' },
+      orderBy: { timestamp: "desc" },
     });
   }
 }

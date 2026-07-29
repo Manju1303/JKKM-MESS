@@ -1,82 +1,99 @@
 import {
-  Controller, Get, Post, Put, Delete, Body, Param,
-  ParseIntPipe, Query, UseGuards,
-} from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
-import { ProductsService } from './products.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { CreateCategoryDto } from './dto/create-category.dto';
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  ParseIntPipe,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from "@nestjs/swagger";
+import { ProductsService } from "./products.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
+import { CreateProductDto } from "./dto/create-product.dto";
+import { UpdateProductDto } from "./dto/update-product.dto";
+import { CreateCategoryDto } from "./dto/create-category.dto";
 
-@ApiTags('Products')
+@ApiTags("Products")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('products')
+@Controller("products")
 export class ProductsController {
-  constructor(private productsService: ProductsService) { }
+  constructor(private productsService: ProductsService) {}
 
   @Get()
-  @ApiQuery({ name: 'type', required: false, enum: ['PACKAGED', 'VEGETABLE', 'BULK'] })
-  @ApiOperation({ summary: 'Get all products, optionally filtered by type' })
-  findAll(@Query('type') type?: string) {
+  @ApiQuery({
+    name: "type",
+    required: false,
+    enum: ["PACKAGED", "VEGETABLE", "BULK"],
+  })
+  @ApiOperation({ summary: "Get all products, optionally filtered by type" })
+  findAll(@Query("type") type?: string) {
     return this.productsService.findAll(type);
   }
 
-  @Get('categories')
-  @ApiOperation({ summary: 'Get all product categories' })
+  @Get("categories")
+  @ApiOperation({ summary: "Get all product categories" })
   getCategories() {
     return this.productsService.getCategories();
   }
 
-  @Get('barcode/:barcode')
-  @ApiOperation({ summary: 'Lookup product by barcode or product code (for scanner + manual entry)' })
-  findByBarcode(@Param('barcode') barcode: string) {
+  @Get("barcode/:barcode")
+  @ApiOperation({
+    summary:
+      "Lookup product by barcode or product code (for scanner + manual entry)",
+  })
+  findByBarcode(@Param("barcode") barcode: string) {
     return this.productsService.findByBarcode(barcode);
   }
 
-  @Get('code/:code')
-  @ApiOperation({ summary: 'Lookup product by product code/SKU' })
-  findByCode(@Param('code') code: string) {
+  @Get("code/:code")
+  @ApiOperation({ summary: "Lookup product by product code/SKU" })
+  findByCode(@Param("code") code: string) {
     return this.productsService.findByCode(code);
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get product by ID with inventory history' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  @Get(":id")
+  @ApiOperation({ summary: "Get product by ID with inventory history" })
+  findOne(@Param("id", ParseIntPipe) id: number) {
     return this.productsService.findById(id);
   }
 
   @Post()
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER')
-  @ApiOperation({ summary: 'Create a new product' })
+  @Roles("SUPER_ADMIN", "MESS_MANAGER", "STORE_KEEPER")
+  @ApiOperation({ summary: "Create a new product" })
   create(@Body() dto: CreateProductDto) {
     return this.productsService.create(dto);
   }
 
-  @Post('categories')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER')
-  @ApiOperation({ summary: 'Create a new product category' })
+  @Post("categories")
+  @Roles("SUPER_ADMIN", "MESS_MANAGER", "STORE_KEEPER")
+  @ApiOperation({ summary: "Create a new product category" })
   createCategory(@Body() dto: CreateCategoryDto) {
     return this.productsService.createCategory(dto);
   }
 
-  @Put(':id')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'STORE_KEEPER')
-  @ApiOperation({ summary: 'Update product details' })
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateProductDto,
-  ) {
+  @Put(":id")
+  @Roles("SUPER_ADMIN", "MESS_MANAGER", "STORE_KEEPER")
+  @ApiOperation({ summary: "Update product details" })
+  update(@Param("id", ParseIntPipe) id: number, @Body() dto: UpdateProductDto) {
     return this.productsService.update(id, dto);
   }
 
-  @Delete(':id')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER')
-  @ApiOperation({ summary: 'Soft-delete product' })
-  delete(@Param('id', ParseIntPipe) id: number) {
+  @Delete(":id")
+  @Roles("SUPER_ADMIN", "MESS_MANAGER")
+  @ApiOperation({ summary: "Soft-delete product" })
+  delete(@Param("id", ParseIntPipe) id: number) {
     return this.productsService.delete(id);
   }
 }

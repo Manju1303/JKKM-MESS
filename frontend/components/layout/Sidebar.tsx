@@ -115,7 +115,7 @@ export default function Sidebar() {
         {/* Toggle button (Desktop only) */}
         <button
           onClick={toggleSidebar}
-          className="absolute -right-3 top-7 z-10 w-6 h-6 rounded-full bg-[hsl(224,76%,48%)] hidden md:flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+          className="absolute -right-3 top-7 z-10 w-6 h-6 rounded-full bg-primary hidden md:flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
           aria-label="Toggle sidebar"
         >
           {sidebarCollapsed

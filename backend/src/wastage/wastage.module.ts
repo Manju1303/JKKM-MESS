@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { WastageService } from './wastage.service';
-import { WastageController } from './wastage.controller';
-import { InventoryModule } from '../inventory/inventory.module';
+import { Module } from "@nestjs/common";
+import { WastageService } from "./wastage.service";
+import { WastageController } from "./wastage.controller";
+import { InventoryModule } from "../inventory/inventory.module";
 
 @Module({
   imports: [InventoryModule],

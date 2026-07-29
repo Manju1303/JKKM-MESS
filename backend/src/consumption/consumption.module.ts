@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { ConsumptionService } from './consumption.service';
-import { ConsumptionController } from './consumption.controller';
+import { Module } from "@nestjs/common";
+import { ConsumptionService } from "./consumption.service";
+import { ConsumptionController } from "./consumption.controller";
 
 @Module({
   providers: [ConsumptionService],

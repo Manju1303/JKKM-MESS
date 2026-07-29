@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { KitchenService } from './kitchen.service';
-import { KitchenController } from './kitchen.controller';
-import { InventoryModule } from '../inventory/inventory.module';
+import { Module } from "@nestjs/common";
+import { KitchenService } from "./kitchen.service";
+import { KitchenController } from "./kitchen.controller";
+import { InventoryModule } from "../inventory/inventory.module";
 
 @Module({
   imports: [InventoryModule],

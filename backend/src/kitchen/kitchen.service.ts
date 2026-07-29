@@ -1,8 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { InventoryService } from '../inventory/inventory.service';
-import { AppGateway } from '../gateway/app.gateway';
-import { getTodayRangeIST } from '../common/date.utils';
+import { Injectable, BadRequestException } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { InventoryService } from "../inventory/inventory.service";
+import { AppGateway } from "../gateway/app.gateway";
+import { getTodayRangeIST } from "../common/date.utils";
 
 @Injectable()
 export class KitchenService {
@@ -10,7 +10,7 @@ export class KitchenService {
     private prisma: PrismaService,
     private inventoryService: InventoryService,
     private appGateway: AppGateway,
-  ) { }
+  ) {}
 
   /**
    * Issue stock from kitchen store:
@@ -67,7 +67,7 @@ export class KitchenService {
           meal: issue.meal,
         });
       } catch (err) {
-        console.error('Failed to broadcast kitchen issue alert:', err.message);
+        console.error("Failed to broadcast kitchen issue alert:", err.message);
       }
 
       return issue;
@@ -84,7 +84,7 @@ export class KitchenService {
         issuedBy: { select: { name: true } },
         consumptionLogs: true,
       },
-      orderBy: { issueDate: 'desc' },
+      orderBy: { issueDate: "desc" },
     });
 
     return issues.map((i) => ({
@@ -108,7 +108,7 @@ export class KitchenService {
     return this.prisma.dailyIssue.findMany({
       where: { issueDate: { gte: from } },
       include: { product: true, issuedBy: { select: { name: true } } },
-      orderBy: { issueDate: 'desc' },
+      orderBy: { issueDate: "desc" },
     });
   }
 
@@ -118,7 +118,7 @@ export class KitchenService {
     return this.prisma.consumptionLog.findMany({
       where: { date: { gte: from } },
       include: { dailyIssue: { include: { product: true } } },
-      orderBy: { date: 'asc' },
+      orderBy: { date: "asc" },
     });
   }
 
@@ -146,10 +146,10 @@ export class KitchenService {
       const purchaseItems = await this.prisma.purchaseItem.findMany({
         where: {
           productId: { in: productIds },
-          purchase: { status: 'APPROVED' },
+          purchase: { status: "APPROVED" },
         },
-        orderBy: { purchase: { purchaseDate: 'desc' } },
-        distinct: ['productId'],
+        orderBy: { purchase: { purchaseDate: "desc" } },
+        distinct: ["productId"],
         select: { productId: true, unitPrice: true },
       });
       purchaseItems.forEach((pi) => pricesMap.set(pi.productId, pi.unitPrice));
@@ -159,17 +159,18 @@ export class KitchenService {
       if (missingIds.length > 0) {
         const invPrices = await this.prisma.inventory.findMany({
           where: { productId: { in: missingIds } },
-          orderBy: { createdAt: 'desc' },
-          distinct: ['productId'],
+          orderBy: { createdAt: "desc" },
+          distinct: ["productId"],
           select: { productId: true, costPerUnit: true },
         });
         invPrices.forEach((i) => {
-          if (!pricesMap.has(i.productId)) pricesMap.set(i.productId, i.costPerUnit);
+          if (!pricesMap.has(i.productId))
+            pricesMap.set(i.productId, i.costPerUnit);
         });
       }
     }
 
-    return ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'].map((meal) => {
+    return ["BREAKFAST", "LUNCH", "DINNER", "SNACK"].map((meal) => {
       const mealLogs = logs.filter((l) => l.meal === meal);
       const totalCost = mealLogs.reduce((sum, l) => {
         const unitCost = pricesMap.get(l.productId) ?? 0;
@@ -189,9 +190,9 @@ export class KitchenService {
     const activeBatches = await this.prisma.inventory.findMany({
       where: { productId, isExpired: false, quantity: { gt: 0 } },
       orderBy: [
-        { expiryDate: { sort: 'asc', nulls: 'last' } },
-        { createdAt: 'asc' }
-      ]
+        { expiryDate: { sort: "asc", nulls: "last" } },
+        { createdAt: "asc" },
+      ],
     });
 
     if (activeBatches.length <= 1) {
@@ -199,16 +200,22 @@ export class KitchenService {
     }
 
     const oldest = activeBatches[0];
-    const current = activeBatches.find(b => b.batchNumber === batchNumber);
+    const current = activeBatches.find((b) => b.batchNumber === batchNumber);
 
     // If the selected batch is not the oldest batch, return a warning flag
-    if (current && oldest.id !== current.id && oldest.expiryDate && current.expiryDate && oldest.expiryDate < current.expiryDate) {
-      const formattedDate = oldest.expiryDate.toLocaleDateString('en-IN');
+    if (
+      current &&
+      oldest.id !== current.id &&
+      oldest.expiryDate &&
+      current.expiryDate &&
+      oldest.expiryDate < current.expiryDate
+    ) {
+      const formattedDate = oldest.expiryDate.toLocaleDateString("en-IN");
       return {
         matchesFefo: false,
-        warning: `FEFO Warning: There is an older batch (#${oldest.batchNumber || 'N/A'}) expiring earlier on ${formattedDate}. Please use that first to reduce food wastage.`,
+        warning: `FEFO Warning: There is an older batch (#${oldest.batchNumber || "N/A"}) expiring earlier on ${formattedDate}. Please use that first to reduce food wastage.`,
         recommendedBatch: oldest.batchNumber,
-        recommendedExpiry: oldest.expiryDate
+        recommendedExpiry: oldest.expiryDate,
       };
     }
 
@@ -223,42 +230,53 @@ export class KitchenService {
     const logs = await this.prisma.consumptionLog.findMany({
       where: { date: { gte: from } },
       include: { dailyIssue: { include: { product: true } } },
-      orderBy: { date: 'asc' }
+      orderBy: { date: "asc" },
     });
 
-    const productIds = Array.from(new Set(logs.map(l => l.productId)));
+    const productIds = Array.from(new Set(logs.map((l) => l.productId)));
     const pricesMap = new Map<number, number>();
 
     if (productIds.length > 0) {
       const purchaseItems = await this.prisma.purchaseItem.findMany({
         where: {
           productId: { in: productIds },
-          purchase: { status: 'APPROVED' }
+          purchase: { status: "APPROVED" },
         },
-        orderBy: { purchase: { purchaseDate: 'desc' } },
-        distinct: ['productId'],
-        select: { productId: true, unitPrice: true }
+        orderBy: { purchase: { purchaseDate: "desc" } },
+        distinct: ["productId"],
+        select: { productId: true, unitPrice: true },
       });
-      purchaseItems.forEach(pi => pricesMap.set(pi.productId, pi.unitPrice));
+      purchaseItems.forEach((pi) => pricesMap.set(pi.productId, pi.unitPrice));
     }
 
-    const grouped: Record<string, {
-      date: string;
-      BreakfastCost: number; BreakfastHeadcount: number;
-      LunchCost: number; LunchHeadcount: number;
-      DinnerCost: number; DinnerHeadcount: number;
-      SnackCost: number; SnackHeadcount: number;
-    }> = {};
+    const grouped: Record<
+      string,
+      {
+        date: string;
+        BreakfastCost: number;
+        BreakfastHeadcount: number;
+        LunchCost: number;
+        LunchHeadcount: number;
+        DinnerCost: number;
+        DinnerHeadcount: number;
+        SnackCost: number;
+        SnackHeadcount: number;
+      }
+    > = {};
 
-    logs.forEach(l => {
-      const dateStr = l.date.toISOString().split('T')[0];
+    logs.forEach((l) => {
+      const dateStr = l.date.toISOString().split("T")[0];
       if (!grouped[dateStr]) {
         grouped[dateStr] = {
           date: dateStr,
-          BreakfastCost: 0, BreakfastHeadcount: 0,
-          LunchCost: 0, LunchHeadcount: 0,
-          DinnerCost: 0, DinnerHeadcount: 0,
-          SnackCost: 0, SnackHeadcount: 0
+          BreakfastCost: 0,
+          BreakfastHeadcount: 0,
+          LunchCost: 0,
+          LunchHeadcount: 0,
+          DinnerCost: 0,
+          DinnerHeadcount: 0,
+          SnackCost: 0,
+          SnackHeadcount: 0,
         };
       }
 
@@ -266,34 +284,49 @@ export class KitchenService {
       const unitCost = pricesMap.get(l.productId) ?? 0;
       const cost = l.quantity * unitCost;
 
-      if (mealKey === 'BREAKFAST') {
+      if (mealKey === "BREAKFAST") {
         grouped[dateStr].BreakfastCost += cost;
         grouped[dateStr].BreakfastHeadcount = l.headcount || 0;
-      } else if (mealKey === 'LUNCH') {
+      } else if (mealKey === "LUNCH") {
         grouped[dateStr].LunchCost += cost;
         grouped[dateStr].LunchHeadcount = l.headcount || 0;
-      } else if (mealKey === 'DINNER') {
+      } else if (mealKey === "DINNER") {
         grouped[dateStr].DinnerCost += cost;
         grouped[dateStr].DinnerHeadcount = l.headcount || 0;
-      } else if (mealKey === 'SNACK') {
+      } else if (mealKey === "SNACK") {
         grouped[dateStr].SnackCost += cost;
         grouped[dateStr].SnackHeadcount = l.headcount || 0;
       }
     });
 
-    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-    return Object.values(grouped).map(d => {
+    return Object.values(grouped).map((d) => {
       const dateObj = new Date(d.date);
       const dayName = daysOfWeek[dateObj.getDay()];
       return {
         date: d.date,
         day: dayName,
-        Breakfast: d.BreakfastHeadcount > 0 ? Math.round((d.BreakfastCost / d.BreakfastHeadcount) * 100) / 100 : 0,
-        Lunch: d.LunchHeadcount > 0 ? Math.round((d.LunchCost / d.LunchHeadcount) * 100) / 100 : 0,
-        Dinner: d.DinnerHeadcount > 0 ? Math.round((d.DinnerCost / d.DinnerHeadcount) * 100) / 100 : 0,
-        Snack: d.SnackHeadcount > 0 ? Math.round((d.SnackCost / d.SnackHeadcount) * 100) / 100 : 0,
-        totalDailyCost: Math.round((d.BreakfastCost + d.LunchCost + d.DinnerCost + d.SnackCost) * 100) / 100
+        Breakfast:
+          d.BreakfastHeadcount > 0
+            ? Math.round((d.BreakfastCost / d.BreakfastHeadcount) * 100) / 100
+            : 0,
+        Lunch:
+          d.LunchHeadcount > 0
+            ? Math.round((d.LunchCost / d.LunchHeadcount) * 100) / 100
+            : 0,
+        Dinner:
+          d.DinnerHeadcount > 0
+            ? Math.round((d.DinnerCost / d.DinnerHeadcount) * 100) / 100
+            : 0,
+        Snack:
+          d.SnackHeadcount > 0
+            ? Math.round((d.SnackCost / d.SnackHeadcount) * 100) / 100
+            : 0,
+        totalDailyCost:
+          Math.round(
+            (d.BreakfastCost + d.LunchCost + d.DinnerCost + d.SnackCost) * 100,
+          ) / 100,
       };
     });
   }

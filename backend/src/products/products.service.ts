@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { CreateCategoryDto } from './dto/create-category.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { CreateProductDto } from "./dto/create-product.dto";
+import { UpdateProductDto } from "./dto/update-product.dto";
+import { CreateCategoryDto } from "./dto/create-category.dto";
 
 @Injectable()
 export class ProductsService {
@@ -12,7 +12,7 @@ export class ProductsService {
     return this.prisma.product.findMany({
       where: { isActive: true, ...(type ? { type } : {}) },
       include: { category: true },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
   }
 
@@ -33,7 +33,10 @@ export class ProductsService {
         include: { category: true },
       });
     }
-    if (!product) throw new NotFoundException(`No product found for barcode/code: "${barcode}"`);
+    if (!product)
+      throw new NotFoundException(
+        `No product found for barcode/code: "${barcode}"`,
+      );
     return product;
   }
 
@@ -43,7 +46,8 @@ export class ProductsService {
       where: { code },
       include: { category: true },
     });
-    if (!product) throw new NotFoundException(`No product found for code: "${code}"`);
+    if (!product)
+      throw new NotFoundException(`No product found for code: "${code}"`);
     return product;
   }
 
@@ -52,10 +56,10 @@ export class ProductsService {
       where: { id },
       include: {
         category: true,
-        inventories: { orderBy: { createdAt: 'desc' }, take: 10 },
+        inventories: { orderBy: { createdAt: "desc" }, take: 10 },
       },
     });
-    if (!product) throw new NotFoundException('Product not found');
+    if (!product) throw new NotFoundException("Product not found");
     return product;
   }
 
@@ -82,7 +86,7 @@ export class ProductsService {
   }
 
   async getCategories() {
-    return this.prisma.category.findMany({ orderBy: { name: 'asc' } });
+    return this.prisma.category.findMany({ orderBy: { name: "asc" } });
   }
 
   async createCategory(dto: CreateCategoryDto) {

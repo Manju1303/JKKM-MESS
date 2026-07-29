@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class ConsumptionService {
@@ -11,7 +11,7 @@ export class ConsumptionService {
     return this.prisma.consumptionLog.findMany({
       where: { date: { gte: from } },
       include: { dailyIssue: { include: { product: true } } },
-      orderBy: { date: 'desc' },
+      orderBy: { date: "desc" },
     });
   }
 
@@ -20,7 +20,7 @@ export class ConsumptionService {
     from.setDate(from.getDate() - days);
     return this.prisma.consumptionLog.findMany({
       where: { productId, date: { gte: from } },
-      orderBy: { date: 'asc' },
+      orderBy: { date: "asc" },
     });
   }
 
@@ -30,9 +30,16 @@ export class ConsumptionService {
     from.setDate(from.getDate() - days);
     const logs = await this.prisma.consumptionLog.findMany({
       where: { date: { gte: from } },
-      include: { dailyIssue: { include: { product: { select: { name: true, unit: true } } } } },
+      include: {
+        dailyIssue: {
+          include: { product: { select: { name: true, unit: true } } },
+        },
+      },
     });
-    const grouped: Record<number, { name: string; unit: string; total: number; days: Set<string> }> = {};
+    const grouped: Record<
+      number,
+      { name: string; unit: string; total: number; days: Set<string> }
+    > = {};
     logs.forEach((l) => {
       if (!grouped[l.productId]) {
         grouped[l.productId] = {
@@ -60,7 +67,7 @@ export class ConsumptionService {
     const where = meal ? { meal } : {};
     const logs = await this.prisma.consumptionLog.findMany({
       where: { ...where, headcount: { gt: 0 } },
-      orderBy: { date: 'desc' },
+      orderBy: { date: "desc" },
       take: 100,
     });
     return logs.map((l) => ({

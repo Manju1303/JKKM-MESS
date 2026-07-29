@@ -185,6 +185,7 @@ export default function DashboardPage() {
   const lowStockCount = stats?.lowStockCount ?? lowStock.length;
   const expiringCount = stats?.expiringSoonCount ?? expiring.length;
   const totalItems = stats?.totalItems ?? 0;
+  const totalCategories = stats?.totalCategories ?? 0;
   const totalValue = stats ? formatCurrency(stats.totalInventoryValue ?? 0) : '₹0.00';
   const activeRole = user?.role || 'STUDENT_VIEWER';
 
@@ -299,20 +300,20 @@ export default function DashboardPage() {
                 <h3 className="font-bold text-foreground text-md mb-2">Manager Operations</h3>
                 <p className="text-xs text-muted-foreground mb-4">Core shortcuts for hostel mess supervisors:</p>
                 <div className="space-y-2">
-                  <Link href="/dashboard/barcode" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
-                    <Camera className="w-4 h-4 text-primary" /> Barcode Stock Entry (Groceries)
+                  <Link href="/dashboard/barcode" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline cursor-pointer select-none">
+                    <Camera className="w-4 h-4 text-primary flex-shrink-0" /> Barcode Stock Entry (Groceries)
                   </Link>
-                  <Link href="/dashboard/inventory" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
-                    <Plus className="w-4 h-4 text-primary" /> Vegetables Manual Stock Entry
+                  <Link href="/dashboard/inventory" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline cursor-pointer select-none">
+                    <Plus className="w-4 h-4 text-primary flex-shrink-0" /> Vegetables Manual Stock Entry
                   </Link>
-                  <Link href="/dashboard/kitchen" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
-                    <ChefHat className="w-4 h-4 text-primary" /> Daily Cooking Stock Issues
+                  <Link href="/dashboard/kitchen" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline cursor-pointer select-none">
+                    <ChefHat className="w-4 h-4 text-primary flex-shrink-0" /> Daily Cooking Stock Issues
                   </Link>
-                  <Link href="/dashboard/purchases" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
-                    <ClipboardList className="w-4 h-4 text-primary" /> Review Purchase Orders
+                  <Link href="/dashboard/purchases" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline cursor-pointer select-none">
+                    <ClipboardList className="w-4 h-4 text-primary flex-shrink-0" /> Review Purchase Orders
                   </Link>
-                  <Link href="/dashboard/reports" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
-                    <FileText className="w-4 h-4 text-primary" /> Stock Valuation Reports
+                  <Link href="/dashboard/reports" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline cursor-pointer select-none">
+                    <FileText className="w-4 h-4 text-primary flex-shrink-0" /> Stock Valuation Reports
                   </Link>
                 </div>
               </div>
@@ -353,17 +354,17 @@ export default function DashboardPage() {
               <h3 className="font-bold text-foreground text-md">Warden Administration</h3>
               <p className="text-xs text-muted-foreground">Manage student meal headcounts, complaints, and update the menu schedule:</p>
               <div className="space-y-2">
-                <Link href="/dashboard/attendance" className="flex items-center gap-2 p-2.5 rounded bg-primary text-white hover:bg-primary/95 text-sm font-semibold transition-all">
-                  <ListTodo className="w-4 h-4" /> Log Today's Headcount
+                <Link href="/dashboard/attendance" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-primary text-white hover:bg-primary/90 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline border-0 outline-none cursor-pointer select-none">
+                  <ListTodo className="w-4 h-4 flex-shrink-0" /> Log Today's Headcount
                 </Link>
-                <Link href="/dashboard/complaints" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
-                  <MessageSquare className="w-4 h-4 text-primary" /> Resolve Student Complaints
+                <Link href="/dashboard/complaints" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline outline-none cursor-pointer select-none">
+                  <MessageSquare className="w-4 h-4 text-primary flex-shrink-0" /> Resolve Student Complaints
                   {unresolvedComplaints > 0 && (
                     <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{unresolvedComplaints}</span>
                   )}
                 </Link>
-                <Link href="/dashboard/menu" className="flex items-center gap-2 p-2.5 rounded bg-muted hover:bg-muted/80 text-sm font-semibold border border-border">
-                  <Calendar className="w-4 h-4 text-primary" /> Update Daily Menu Plan
+                <Link href="/dashboard/menu" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] w-full text-sm font-semibold transition-all no-underline outline-none cursor-pointer select-none">
+                  <Calendar className="w-4 h-4 text-primary flex-shrink-0" /> Update Daily Menu Plan
                 </Link>
               </div>
             </div>
@@ -387,7 +388,7 @@ export default function DashboardPage() {
                 <h3 className="font-bold text-foreground text-md mb-2">Storekeeper Quick Actions</h3>
                 <p className="text-xs text-muted-foreground mb-4">Core tools for inventory arrivals and dispatches:</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Link href="/dashboard/barcode" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-[hsl(224,76%,48%)] text-white hover:bg-[hsl(224,76%,45%)] hover:scale-[1.01] active:scale-[0.99] text-sm font-semibold transition-all no-underline cursor-pointer select-none">
+                  <Link href="/dashboard/barcode" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-primary text-white hover:bg-primary/90 hover:scale-[1.01] active:scale-[0.99] text-sm font-semibold transition-all no-underline cursor-pointer select-none">
                     <Camera className="w-4 h-4 flex-shrink-0" /> Barcode Scanner Entry
                   </Link>
                   <Link href="/dashboard/inventory" className="inline-flex items-center justify-start gap-2.5 px-4 py-3 rounded-lg bg-muted border border-border text-foreground hover:bg-muted/80 hover:scale-[1.01] active:scale-[0.99] text-sm font-semibold transition-all no-underline cursor-pointer select-none">
@@ -468,7 +469,7 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatsCard title="Portfolio Valuation" value={totalValue} subtitle="Estimated total stock value" icon={<IndianRupee className="w-5 h-5" />} variant="success" isLoading={loading} />
-            <StatsCard title="Total Categories" value={totalItems} subtitle="Active catalog items" icon={<Package className="w-5 h-5" />} variant="primary" isLoading={loading} />
+            <StatsCard title="Total Categories" value={totalCategories} subtitle="Active catalog items" icon={<Package className="w-5 h-5" />} variant="primary" isLoading={loading} />
             <StatsCard title="Reorder Requirements" value={lowStockCount} subtitle="Active low stock metrics" icon={<AlertTriangle className="w-5 h-5" />} variant="warning" isLoading={loading} />
           </section>
 

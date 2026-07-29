@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { UpdateUserDto } from "./dto/update-user.dto";
 
 @Injectable()
 export class UsersService {
@@ -21,20 +21,19 @@ export class UsersService {
         role: true,
       },
       where: includeInactive ? {} : { isActive: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
-
 
   async findById(id: number) {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: { role: true },
     });
-    if (!user) throw new NotFoundException('User not found');
-    // Strip password from response
-    const { password, ...rest } = user;
-    return rest;
+    if (!user) throw new NotFoundException("User not found");
+    const userCopy = { ...user };
+    delete (userCopy as any).password;
+    return userCopy;
   }
 
   async findByEmail(email: string) {
@@ -66,7 +65,11 @@ export class UsersService {
     });
   }
 
-  async updateLockoutState(id: number, failedAttempts: number, lockUntil: Date | null) {
+  async updateLockoutState(
+    id: number,
+    failedAttempts: number,
+    lockUntil: Date | null,
+  ) {
     return this.prisma.user.update({
       where: { id },
       data: {
@@ -92,6 +95,6 @@ export class UsersService {
   }
 
   async getRoles() {
-    return this.prisma.role.findMany({ orderBy: { name: 'asc' } });
+    return this.prisma.role.findMany({ orderBy: { name: "asc" } });
   }
 }

@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class SuppliersService {
@@ -8,7 +8,7 @@ export class SuppliersService {
   async findAll() {
     return this.prisma.supplier.findMany({
       include: { _count: { select: { purchases: true } } },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
   }
 
@@ -17,13 +17,13 @@ export class SuppliersService {
       where: { id },
       include: {
         purchases: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
           take: 10,
           include: { items: { include: { product: true } } },
         },
       },
     });
-    if (!supplier) throw new NotFoundException('Supplier not found');
+    if (!supplier) throw new NotFoundException("Supplier not found");
     return supplier;
   }
 
@@ -49,7 +49,9 @@ export class SuppliersService {
       select: { totalAmount: true, purchaseDate: true, status: true },
     });
     const totalSpend = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
-    const approvedOrders = purchases.filter((p) => p.status === 'APPROVED').length;
+    const approvedOrders = purchases.filter(
+      (p) => p.status === "APPROVED",
+    ).length;
     return {
       totalOrders: purchases.length,
       approvedOrders,

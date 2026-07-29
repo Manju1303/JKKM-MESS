@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateMenuDto } from './dto/create-menu.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { CreateMenuDto } from "./dto/create-menu.dto";
 
 @Injectable()
 export class MenuService {
@@ -8,7 +8,7 @@ export class MenuService {
 
   async findAll() {
     return this.prisma.menu.findMany({
-      orderBy: { date: 'desc' },
+      orderBy: { date: "desc" },
     });
   }
 
@@ -20,13 +20,13 @@ export class MenuService {
           lte: new Date(end),
         },
       },
-      orderBy: { date: 'asc' },
+      orderBy: { date: "asc" },
     });
   }
 
   async findOne(id: number) {
     const menu = await this.prisma.menu.findUnique({ where: { id } });
-    if (!menu) throw new NotFoundException('Menu item not found');
+    if (!menu) throw new NotFoundException("Menu item not found");
     return menu;
   }
 

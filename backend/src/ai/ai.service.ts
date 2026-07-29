@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
 
 /**
  * AiService provides smart analytics and predictions based on historical data.
@@ -11,14 +11,21 @@ import { PrismaService } from '../prisma/prisma.service';
  */
 @Injectable()
 export class AiService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   // ─── Internal helpers (accept pre-fetched data to avoid duplicate queries) ───
 
   private _computePredictions(
     logs: Array<{
       quantity: number;
-      dailyIssue: { product: { id: number; name: string; unit: string; minStockLevel: number } | null } | null;
+      dailyIssue: {
+        product: {
+          id: number;
+          name: string;
+          unit: string;
+          minStockLevel: number;
+        } | null;
+      } | null;
     }>,
   ) {
     if (logs.length === 0) return [];
@@ -32,7 +39,12 @@ export class AiService {
       const p = l.dailyIssue?.product;
       if (!p) return;
       if (!grouped[p.id])
-        grouped[p.id] = { name: p.name, unit: p.unit, min: p.minStockLevel, quantities: [] };
+        grouped[p.id] = {
+          name: p.name,
+          unit: p.unit,
+          min: p.minStockLevel,
+          quantities: [],
+        };
       grouped[p.id].quantities.push(l.quantity);
     });
 
@@ -53,7 +65,16 @@ export class AiService {
   }
 
   private _computeReorderSuggestions(
-    inventory: Array<{ productId: number; quantity: number; product: { id: number; name: string; unit: string; minStockLevel: number } }>,
+    inventory: Array<{
+      productId: number;
+      quantity: number;
+      product: {
+        id: number;
+        name: string;
+        unit: string;
+        minStockLevel: number;
+      };
+    }>,
     predictions: ReturnType<typeof this._computePredictions>,
   ) {
     const productTotals = new Map<number, { product: any; totalQty: number }>();
@@ -62,7 +83,10 @@ export class AiService {
       if (existing) {
         existing.totalQty += i.quantity;
       } else {
-        productTotals.set(i.productId, { product: i.product, totalQty: i.quantity });
+        productTotals.set(i.productId, {
+          product: i.product,
+          totalQty: i.quantity,
+        });
       }
     });
 
@@ -79,20 +103,37 @@ export class AiService {
         currentStock: totalQty,
         minRequired: product.minStockLevel,
         unit: product.unit,
-        suggestedOrderQty: pred?.recommendedOrderQty || product.minStockLevel * 2,
+        suggestedOrderQty:
+          pred?.recommendedOrderQty || product.minStockLevel * 2,
         urgency:
-          totalQty === 0 ? 'CRITICAL' : totalQty < product.minStockLevel / 2 ? 'HIGH' : 'MEDIUM',
+          totalQty === 0
+            ? "CRITICAL"
+            : totalQty < product.minStockLevel / 2
+              ? "HIGH"
+              : "MEDIUM",
       };
     });
   }
 
   private _computeFutureStockPrediction(
-    inventory: Array<{ productId: number; quantity: number; product: { id: number; name: string; unit: string; minStockLevel: number } }>,
+    inventory: Array<{
+      productId: number;
+      quantity: number;
+      product: {
+        id: number;
+        name: string;
+        unit: string;
+        minStockLevel: number;
+      };
+    }>,
     predictions: ReturnType<typeof this._computePredictions>,
   ) {
     if (inventory.length === 0) return [];
     const predMap = new Map(predictions.map((p) => [p.productId, p]));
-    const productStock: Record<number, { name: string; quantity: number; unit: string; minLevel: number }> = {};
+    const productStock: Record<
+      number,
+      { name: string; quantity: number; unit: string; minLevel: number }
+    > = {};
 
     inventory.forEach((i) => {
       if (!productStock[i.productId]) {
@@ -118,7 +159,12 @@ export class AiService {
         unit: info.unit,
         avgDailyUsage: Math.round(avgDaily * 100) / 100,
         daysRemaining: Math.round(Math.min(daysRemaining, 365) * 10) / 10,
-        urgency: daysRemaining <= 2 ? 'CRITICAL' : daysRemaining <= 7 ? 'HIGH' : 'NORMAL',
+        urgency:
+          daysRemaining <= 2
+            ? "CRITICAL"
+            : daysRemaining <= 7
+              ? "HIGH"
+              : "NORMAL",
       };
     });
   }
@@ -138,7 +184,14 @@ export class AiService {
         include: {
           dailyIssue: {
             include: {
-              product: { select: { id: true, name: true, unit: true, minStockLevel: true } },
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  unit: true,
+                  minStockLevel: true,
+                },
+              },
             },
           },
         },
@@ -153,7 +206,7 @@ export class AiService {
   async detectSpendingAnomalies() {
     try {
       const purchases = await this.prisma.purchase.findMany({
-        where: { status: 'APPROVED' },
+        where: { status: "APPROVED" },
         select: {
           purchaseNumber: true,
           netAmount: true,
@@ -161,7 +214,7 @@ export class AiService {
           supplierId: true,
           supplier: { select: { name: true } },
         },
-        orderBy: { purchaseDate: 'desc' },
+        orderBy: { purchaseDate: "desc" },
         take: 50,
       });
       if (purchases.length < 3) return [];
@@ -178,7 +231,7 @@ export class AiService {
           netAmount: p.netAmount,
           purchaseDate: p.purchaseDate,
           supplierId: p.supplierId,
-          supplierName: p.supplier?.name || 'Unknown Supplier',
+          supplierName: p.supplier?.name || "Unknown Supplier",
           zScore: Math.round(((p.netAmount - mean) / stdDev) * 100) / 100,
           isHigh: p.netAmount > mean,
         }));
@@ -193,8 +246,29 @@ export class AiService {
       const [inventory, consumptionLogs] = await Promise.all([
         this.prisma.inventory.findMany({ include: { product: true } }),
         this.prisma.consumptionLog.findMany({
-          where: { date: { gte: (() => { const d = new Date(); d.setDate(d.getDate() - 30); return d; })() } },
-          include: { dailyIssue: { include: { product: { select: { id: true, name: true, unit: true, minStockLevel: true } } } } },
+          where: {
+            date: {
+              gte: (() => {
+                const d = new Date();
+                d.setDate(d.getDate() - 30);
+                return d;
+              })(),
+            },
+          },
+          include: {
+            dailyIssue: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    unit: true,
+                    minStockLevel: true,
+                  },
+                },
+              },
+            },
+          },
         }),
       ]);
       if (inventory.length === 0) return [];
@@ -210,16 +284,26 @@ export class AiService {
     try {
       const logs = await this.prisma.consumptionLog.findMany({
         where: { headcount: { gt: 0 } },
-        include: { dailyIssue: { include: { product: { select: { name: true } } } } },
+        include: {
+          dailyIssue: { include: { product: { select: { name: true } } } },
+        },
       });
       if (logs.length === 0) return [];
 
-      const grouped: Record<number, { name: string; unit: string; totalQty: number; totalHeadcount: number }> = {};
+      const grouped: Record<
+        number,
+        { name: string; unit: string; totalQty: number; totalHeadcount: number }
+      > = {};
       logs.forEach((l) => {
         const p = l.dailyIssue?.product;
         if (!p) return;
         if (!grouped[l.productId]) {
-          grouped[l.productId] = { name: p.name, unit: l.unit, totalQty: 0, totalHeadcount: 0 };
+          grouped[l.productId] = {
+            name: p.name,
+            unit: l.unit,
+            totalQty: 0,
+            totalHeadcount: 0,
+          };
         }
         grouped[l.productId].totalQty += l.quantity;
         grouped[l.productId].totalHeadcount += l.headcount;
@@ -229,7 +313,8 @@ export class AiService {
         productId: parseInt(productId),
         productName: data.name,
         unit: data.unit,
-        avgPerStudentMeal: Math.round((data.totalQty / data.totalHeadcount) * 10000) / 10000,
+        avgPerStudentMeal:
+          Math.round((data.totalQty / data.totalHeadcount) * 10000) / 10000,
       }));
     } catch {
       return [];
@@ -245,7 +330,7 @@ export class AiService {
           include: { dailyIssue: { include: { product: true } } },
         }),
         this.prisma.wastage.findMany({
-          where: { reason: 'OVER_PREPARATION' },
+          where: { reason: "OVER_PREPARATION" },
           select: { productId: true, quantity: true },
         }),
       ]);
@@ -253,7 +338,10 @@ export class AiService {
       // Calculate total over-preparation waste per product
       const productWasteMap = new Map<number, number>();
       overPrepWastage.forEach((w) => {
-        productWasteMap.set(w.productId, (productWasteMap.get(w.productId) || 0) + w.quantity);
+        productWasteMap.set(
+          w.productId,
+          (productWasteMap.get(w.productId) || 0) + w.quantity,
+        );
       });
 
       if (logs.length === 0) {
@@ -278,8 +366,14 @@ export class AiService {
         });
       }
 
-      const productMeals: Record<number, Record<string, { totalQty: number; totalHeadcount: number }>> = {};
-      const productInfo: Record<number, { name: string; unit: string; totalQty: number; totalHeadcount: number }> = {};
+      const productMeals: Record<
+        number,
+        Record<string, { totalQty: number; totalHeadcount: number }>
+      > = {};
+      const productInfo: Record<
+        number,
+        { name: string; unit: string; totalQty: number; totalHeadcount: number }
+      > = {};
 
       logs.forEach((l) => {
         const p = l.dailyIssue?.product;
@@ -287,11 +381,19 @@ export class AiService {
         if (!productMeals[l.productId]) productMeals[l.productId] = {};
         const mealKey = l.meal.toUpperCase();
         if (!productMeals[l.productId][mealKey])
-          productMeals[l.productId][mealKey] = { totalQty: 0, totalHeadcount: 0 };
+          productMeals[l.productId][mealKey] = {
+            totalQty: 0,
+            totalHeadcount: 0,
+          };
         productMeals[l.productId][mealKey].totalQty += l.quantity;
         productMeals[l.productId][mealKey].totalHeadcount += l.headcount;
         if (!productInfo[l.productId])
-          productInfo[l.productId] = { name: p.name, unit: l.unit, totalQty: 0, totalHeadcount: 0 };
+          productInfo[l.productId] = {
+            name: p.name,
+            unit: l.unit,
+            totalQty: 0,
+            totalHeadcount: 0,
+          };
         productInfo[l.productId].totalQty += l.quantity;
         productInfo[l.productId].totalHeadcount += l.headcount;
       });
@@ -301,16 +403,20 @@ export class AiService {
         const mealsMap = productMeals[productId];
         let sumPerStudentDaily = 0;
         Object.values(mealsMap).forEach((m) => {
-          if (m.totalHeadcount > 0) sumPerStudentDaily += m.totalQty / m.totalHeadcount;
+          if (m.totalHeadcount > 0)
+            sumPerStudentDaily += m.totalQty / m.totalHeadcount;
         });
 
         // Learn from wastage: calculate waste ratio and apply adjustment factor (max 30% reduction to ensure safety)
         const totalWasted = productWasteMap.get(productId) || 0;
         const totalIssued = info.totalQty || 0;
-        const wasteRatio = totalIssued > 0 ? Math.min(0.30, totalWasted / totalIssued) : 0;
+        const wasteRatio =
+          totalIssued > 0 ? Math.min(0.3, totalWasted / totalIssued) : 0;
         const adjustmentFactor = 1 - wasteRatio;
 
-        const overallAvgPerMeal = (info.totalHeadcount > 0 ? info.totalQty / info.totalHeadcount : 0) * adjustmentFactor;
+        const overallAvgPerMeal =
+          (info.totalHeadcount > 0 ? info.totalQty / info.totalHeadcount : 0) *
+          adjustmentFactor;
         const singleMealQty = overallAvgPerMeal * headcount;
         const dailyQty = sumPerStudentDaily * headcount * adjustmentFactor;
 
@@ -337,8 +443,29 @@ export class AiService {
       const [inventory, consumptionLogs] = await Promise.all([
         this.prisma.inventory.findMany({ include: { product: true } }),
         this.prisma.consumptionLog.findMany({
-          where: { date: { gte: (() => { const d = new Date(); d.setDate(d.getDate() - 30); return d; })() } },
-          include: { dailyIssue: { include: { product: { select: { id: true, name: true, unit: true, minStockLevel: true } } } } },
+          where: {
+            date: {
+              gte: (() => {
+                const d = new Date();
+                d.setDate(d.getDate() - 30);
+                return d;
+              })(),
+            },
+          },
+          include: {
+            dailyIssue: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    unit: true,
+                    minStockLevel: true,
+                  },
+                },
+              },
+            },
+          },
         }),
       ]);
       if (inventory.length === 0) return [];
@@ -361,7 +488,7 @@ export class AiService {
 
       const logs = await this.prisma.consumptionLog.findMany({
         where: { date: { gte: from } },
-        orderBy: { date: 'asc' },
+        orderBy: { date: "asc" },
       });
 
       if (logs.length === 0) {
@@ -373,34 +500,61 @@ export class AiService {
         };
       }
 
-      let weekdaySum = 0, weekdayCount = 0, weekendSum = 0, weekendCount = 0;
-      const mealSums: Record<string, number> = { BREAKFAST: 0, LUNCH: 0, DINNER: 0, SNACK: 0 };
-      const mealCounts: Record<string, number> = { BREAKFAST: 0, LUNCH: 0, DINNER: 0, SNACK: 0 };
+      let weekdaySum = 0,
+        weekdayCount = 0,
+        weekendSum = 0,
+        weekendCount = 0;
+      const mealSums: Record<string, number> = {
+        BREAKFAST: 0,
+        LUNCH: 0,
+        DINNER: 0,
+        SNACK: 0,
+      };
+      const mealCounts: Record<string, number> = {
+        BREAKFAST: 0,
+        LUNCH: 0,
+        DINNER: 0,
+        SNACK: 0,
+      };
 
       logs.forEach((l) => {
         const day = l.date.getDay();
         const isWeekend = day === 0 || day === 6;
-        if (isWeekend) { weekendSum += l.quantity; weekendCount++; }
-        else { weekdaySum += l.quantity; weekdayCount++; }
+        if (isWeekend) {
+          weekendSum += l.quantity;
+          weekendCount++;
+        } else {
+          weekdaySum += l.quantity;
+          weekdayCount++;
+        }
         const meal = l.meal.toUpperCase();
-        if (mealSums[meal] !== undefined) { mealSums[meal] += l.quantity; mealCounts[meal]++; }
+        if (mealSums[meal] !== undefined) {
+          mealSums[meal] += l.quantity;
+          mealCounts[meal]++;
+        }
       });
 
       return {
         weekdayAvgQuantity:
-          weekdayCount > 0 ? Math.round((weekdaySum / weekdayCount) * 10) / 10 : 0,
+          weekdayCount > 0
+            ? Math.round((weekdaySum / weekdayCount) * 10) / 10
+            : 0,
         weekendAvgQuantity:
-          weekendCount > 0 ? Math.round((weekendSum / weekendCount) * 10) / 10 : 0,
+          weekendCount > 0
+            ? Math.round((weekendSum / weekendCount) * 10) / 10
+            : 0,
         mealAverages: Object.keys(mealSums).map((m) => ({
           meal: m,
           avgQuantity:
-            mealCounts[m] > 0 ? Math.round((mealSums[m] / mealCounts[m]) * 10) / 10 : 0,
+            mealCounts[m] > 0
+              ? Math.round((mealSums[m] / mealCounts[m]) * 10) / 10
+              : 0,
         })),
         insights: [
           weekdaySum > weekendSum
-            ? 'Weekday attendance spikes volume needs by ~15%.'
-            : 'Weekend volume remains steady.',
-          'Dinner represents the highest caloric consumption index.',
+            ? "Weekday attendance spikes volume needs by ~15%."
+            : "Weekend volume remains steady.",
+          "Dinner represents the highest caloric consumption index.",
         ],
       };
     } catch {
@@ -418,18 +572,29 @@ export class AiService {
     try {
       const [wastage, logs] = await Promise.all([
         this.prisma.wastage.findMany({ include: { product: true } }),
-        this.prisma.consumptionLog.findMany({ orderBy: { date: 'desc' }, take: 30 }),
+        this.prisma.consumptionLog.findMany({
+          orderBy: { date: "desc" },
+          take: 30,
+        }),
       ]);
 
       if (wastage.length === 0) {
-        return { totalWastedValue: 0, reasons: [] as any[], prepEfficiencyIndex: 0 };
+        return {
+          totalWastedValue: 0,
+          reasons: [] as any[],
+          prepEfficiencyIndex: 0,
+        };
       }
 
-      const reasonGroups: Record<string, { count: number; totalValue: number; qty: number }> = {};
+      const reasonGroups: Record<
+        string,
+        { count: number; totalValue: number; qty: number }
+      > = {};
       let totalWastedValue = 0;
       wastage.forEach((w) => {
-        const reason = w.reason || 'OTHER';
-        if (!reasonGroups[reason]) reasonGroups[reason] = { count: 0, totalValue: 0, qty: 0 };
+        const reason = w.reason || "OTHER";
+        if (!reasonGroups[reason])
+          reasonGroups[reason] = { count: 0, totalValue: 0, qty: 0 };
         reasonGroups[reason].count++;
         reasonGroups[reason].totalValue += w.valueAmount;
         reasonGroups[reason].qty += w.quantity;
@@ -455,7 +620,11 @@ export class AiService {
         prepEfficiencyIndex: Math.round(prepEfficiencyIndex),
       };
     } catch {
-      return { totalWastedValue: 0, reasons: [] as any[], prepEfficiencyIndex: 0 };
+      return {
+        totalWastedValue: 0,
+        reasons: [] as any[],
+        prepEfficiencyIndex: 0,
+      };
     }
   }
 
@@ -472,49 +641,69 @@ export class AiService {
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
       // ── 4 queries total (was 12) ──────────────────────────────────────────
-      const [inventory, consumptionLogs, approvedPurchases, wastage, recentConsumption] =
-        await Promise.all([
-          this.prisma.inventory.findMany({ include: { product: true } }),
-          this.prisma.consumptionLog.findMany({
-            where: { date: { gte: thirtyDaysAgo } },
-            include: {
-              dailyIssue: {
-                include: {
-                  product: { select: { id: true, name: true, unit: true, minStockLevel: true } },
+      const [
+        inventory,
+        consumptionLogs,
+        approvedPurchases,
+        wastage,
+        recentConsumption,
+      ] = await Promise.all([
+        this.prisma.inventory.findMany({ include: { product: true } }),
+        this.prisma.consumptionLog.findMany({
+          where: { date: { gte: thirtyDaysAgo } },
+          include: {
+            dailyIssue: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    unit: true,
+                    minStockLevel: true,
+                  },
                 },
               },
             },
-          }),
-          this.prisma.purchase.findMany({
-            where: { status: 'APPROVED' },
-            select: {
-              purchaseNumber: true,
-              netAmount: true,
-              purchaseDate: true,
-              supplierId: true,
-              supplier: { select: { name: true } },
-            },
-            orderBy: { purchaseDate: 'desc' },
-            take: 50,
-          }),
-          this.prisma.wastage.findMany({ include: { product: true } }),
-          this.prisma.consumptionLog.findMany({
-            where: { date: { gte: ninetyDaysAgo } },
-            orderBy: { date: 'asc' },
-          }),
-        ]);
+          },
+        }),
+        this.prisma.purchase.findMany({
+          where: { status: "APPROVED" },
+          select: {
+            purchaseNumber: true,
+            netAmount: true,
+            purchaseDate: true,
+            supplierId: true,
+            supplier: { select: { name: true } },
+          },
+          orderBy: { purchaseDate: "desc" },
+          take: 50,
+        }),
+        this.prisma.wastage.findMany({ include: { product: true } }),
+        this.prisma.consumptionLog.findMany({
+          where: { date: { gte: ninetyDaysAgo } },
+          orderBy: { date: "asc" },
+        }),
+      ]);
 
       // ── Compute all analytics from pre-fetched data ───────────────────────
       const predictions = this._computePredictions(consumptionLogs);
-      const reorderSuggestions = this._computeReorderSuggestions(inventory, predictions);
-      const stockRunout = this._computeFutureStockPrediction(inventory, predictions);
+      const reorderSuggestions = this._computeReorderSuggestions(
+        inventory,
+        predictions,
+      );
+      const stockRunout = this._computeFutureStockPrediction(
+        inventory,
+        predictions,
+      );
 
       // Anomaly detection (inline — uses approvedPurchases)
       const anomalies = (() => {
         if (approvedPurchases.length < 3) return [];
         const amounts = approvedPurchases.map((p) => p.netAmount);
         const mean = amounts.reduce((s, a) => s + a, 0) / amounts.length;
-        const variance = amounts.reduce((s, a) => s + Math.pow(a - mean, 2), 0) / amounts.length;
+        const variance =
+          amounts.reduce((s, a) => s + Math.pow(a - mean, 2), 0) /
+          amounts.length;
         const stdDev = Math.sqrt(variance);
         return approvedPurchases
           .filter((p) => Math.abs(p.netAmount - mean) > 2 * stdDev)
@@ -523,7 +712,7 @@ export class AiService {
             netAmount: p.netAmount,
             purchaseDate: p.purchaseDate,
             supplierId: p.supplierId,
-            supplierName: p.supplier?.name || 'Unknown',
+            supplierName: p.supplier?.name || "Unknown",
             zScore: Math.round(((p.netAmount - mean) / stdDev) * 100) / 100,
             isHigh: p.netAmount > mean,
           }));
@@ -532,50 +721,95 @@ export class AiService {
       // Seasonal analysis (inline — uses recentConsumption 90 days)
       const seasonal = (() => {
         if (recentConsumption.length === 0) {
-          return { weekdayAvgQuantity: 0, weekendAvgQuantity: 0, mealAverages: [], insights: [] };
+          return {
+            weekdayAvgQuantity: 0,
+            weekendAvgQuantity: 0,
+            mealAverages: [],
+            insights: [],
+          };
         }
-        let weekdaySum = 0, weekdayCount = 0, weekendSum = 0, weekendCount = 0;
-        const mealSums: Record<string, number> = { BREAKFAST: 0, LUNCH: 0, DINNER: 0, SNACK: 0 };
-        const mealCounts: Record<string, number> = { BREAKFAST: 0, LUNCH: 0, DINNER: 0, SNACK: 0 };
+        let weekdaySum = 0,
+          weekdayCount = 0,
+          weekendSum = 0,
+          weekendCount = 0;
+        const mealSums: Record<string, number> = {
+          BREAKFAST: 0,
+          LUNCH: 0,
+          DINNER: 0,
+          SNACK: 0,
+        };
+        const mealCounts: Record<string, number> = {
+          BREAKFAST: 0,
+          LUNCH: 0,
+          DINNER: 0,
+          SNACK: 0,
+        };
         recentConsumption.forEach((l) => {
           const isWeekend = l.date.getDay() === 0 || l.date.getDay() === 6;
-          if (isWeekend) { weekendSum += l.quantity; weekendCount++; }
-          else { weekdaySum += l.quantity; weekdayCount++; }
+          if (isWeekend) {
+            weekendSum += l.quantity;
+            weekendCount++;
+          } else {
+            weekdaySum += l.quantity;
+            weekdayCount++;
+          }
           const meal = l.meal.toUpperCase();
-          if (mealSums[meal] !== undefined) { mealSums[meal] += l.quantity; mealCounts[meal]++; }
+          if (mealSums[meal] !== undefined) {
+            mealSums[meal] += l.quantity;
+            mealCounts[meal]++;
+          }
         });
         return {
-          weekdayAvgQuantity: weekdayCount > 0 ? Math.round((weekdaySum / weekdayCount) * 10) / 10 : 0,
-          weekendAvgQuantity: weekendCount > 0 ? Math.round((weekendSum / weekendCount) * 10) / 10 : 0,
+          weekdayAvgQuantity:
+            weekdayCount > 0
+              ? Math.round((weekdaySum / weekdayCount) * 10) / 10
+              : 0,
+          weekendAvgQuantity:
+            weekendCount > 0
+              ? Math.round((weekendSum / weekendCount) * 10) / 10
+              : 0,
           mealAverages: Object.keys(mealSums).map((m) => ({
             meal: m,
-            avgQuantity: mealCounts[m] > 0 ? Math.round((mealSums[m] / mealCounts[m]) * 10) / 10 : 0,
+            avgQuantity:
+              mealCounts[m] > 0
+                ? Math.round((mealSums[m] / mealCounts[m]) * 10) / 10
+                : 0,
           })),
           insights: [
             weekdaySum > weekendSum
-              ? 'Weekday attendance spikes volume needs by ~15%.'
-              : 'Weekend volume remains steady.',
-            'Dinner represents the highest caloric consumption index.',
+              ? "Weekday attendance spikes volume needs by ~15%."
+              : "Weekend volume remains steady.",
+            "Dinner represents the highest caloric consumption index.",
           ],
         };
       })();
 
       // Waste analytics (inline — uses wastage + recentConsumption)
       const waste = (() => {
-        if (wastage.length === 0) return { totalWastedValue: 0, reasons: [], prepEfficiencyIndex: 0 };
-        const reasonGroups: Record<string, { count: number; totalValue: number; qty: number }> = {};
+        if (wastage.length === 0)
+          return { totalWastedValue: 0, reasons: [], prepEfficiencyIndex: 0 };
+        const reasonGroups: Record<
+          string,
+          { count: number; totalValue: number; qty: number }
+        > = {};
         let totalWastedValue = 0;
         wastage.forEach((w) => {
-          const reason = w.reason || 'OTHER';
-          if (!reasonGroups[reason]) reasonGroups[reason] = { count: 0, totalValue: 0, qty: 0 };
+          const reason = w.reason || "OTHER";
+          if (!reasonGroups[reason])
+            reasonGroups[reason] = { count: 0, totalValue: 0, qty: 0 };
           reasonGroups[reason].count++;
           reasonGroups[reason].totalValue += w.valueAmount;
           reasonGroups[reason].qty += w.quantity;
           totalWastedValue += w.valueAmount;
         });
         const recent30 = recentConsumption.slice(-30);
-        const deviationCount = recent30.filter((l) => l.headcount > 0 && l.quantity / l.headcount > 0.4).length;
-        const prepEfficiencyIndex = Math.max(70, Math.min(98, 100 - (deviationCount / (recent30.length || 1)) * 30));
+        const deviationCount = recent30.filter(
+          (l) => l.headcount > 0 && l.quantity / l.headcount > 0.4,
+        ).length;
+        const prepEfficiencyIndex = Math.max(
+          70,
+          Math.min(98, 100 - (deviationCount / (recent30.length || 1)) * 30),
+        );
         return {
           totalWastedValue: Math.round(totalWastedValue * 100) / 100,
           reasons: Object.entries(reasonGroups).map(([reason, data]) => ({
@@ -590,30 +824,51 @@ export class AiService {
 
       // Per-student from 30-day consumption logs (inline)
       const perStudent = (() => {
-        const grouped: Record<number, { name: string; unit: string; totalQty: number; totalHeadcount: number }> = {};
-        consumptionLogs.filter((l) => l.headcount > 0).forEach((l) => {
-          const p = l.dailyIssue?.product;
-          if (!p) return;
-          if (!grouped[l.productId])
-            grouped[l.productId] = { name: (p as any).name ?? '', unit: l.unit, totalQty: 0, totalHeadcount: 0 };
-          grouped[l.productId].totalQty += l.quantity;
-          grouped[l.productId].totalHeadcount += l.headcount;
-        });
+        const grouped: Record<
+          number,
+          {
+            name: string;
+            unit: string;
+            totalQty: number;
+            totalHeadcount: number;
+          }
+        > = {};
+        consumptionLogs
+          .filter((l) => l.headcount > 0)
+          .forEach((l) => {
+            const p = l.dailyIssue?.product;
+            if (!p) return;
+            if (!grouped[l.productId])
+              grouped[l.productId] = {
+                name: (p as any).name ?? "",
+                unit: l.unit,
+                totalQty: 0,
+                totalHeadcount: 0,
+              };
+            grouped[l.productId].totalQty += l.quantity;
+            grouped[l.productId].totalHeadcount += l.headcount;
+          });
         return Object.entries(grouped).map(([productId, data]) => ({
           productId: parseInt(productId),
           productName: data.name,
           unit: data.unit,
-          avgPerStudentMeal: Math.round((data.totalQty / data.totalHeadcount) * 10000) / 10000,
+          avgPerStudentMeal:
+            Math.round((data.totalQty / data.totalHeadcount) * 10000) / 10000,
         }));
       })();
 
       return {
         summary: {
-          criticalItems: reorderSuggestions.filter((r) => r.urgency === 'CRITICAL').length,
-          highUrgencyItems: reorderSuggestions.filter((r) => r.urgency === 'HIGH').length,
+          criticalItems: reorderSuggestions.filter(
+            (r) => r.urgency === "CRITICAL",
+          ).length,
+          highUrgencyItems: reorderSuggestions.filter(
+            (r) => r.urgency === "HIGH",
+          ).length,
           spendingAnomalies: anomalies.length,
           topConsumerProduct:
-            predictions.sort((a, b) => b.avgDailyUsage - a.avgDailyUsage)[0]?.productName || 'N/A',
+            predictions.sort((a, b) => b.avgDailyUsage - a.avgDailyUsage)[0]
+              ?.productName || "N/A",
           prepEfficiency: waste.prepEfficiencyIndex,
           wastedCost: waste.totalWastedValue,
         },
@@ -626,11 +881,26 @@ export class AiService {
         perStudent,
       };
     } catch (e) {
-      console.error('getInsights failed:', e);
+      console.error("getInsights failed:", e);
       return {
-        summary: { criticalItems: 0, highUrgencyItems: 0, spendingAnomalies: 0, topConsumerProduct: 'N/A', prepEfficiency: 0, wastedCost: 0 },
-        reorderSuggestions: [], anomalies: [], predictions: [], stockRunout: [],
-        seasonal: { weekdayAvgQuantity: 0, weekendAvgQuantity: 0, mealAverages: [], insights: [] },
+        summary: {
+          criticalItems: 0,
+          highUrgencyItems: 0,
+          spendingAnomalies: 0,
+          topConsumerProduct: "N/A",
+          prepEfficiency: 0,
+          wastedCost: 0,
+        },
+        reorderSuggestions: [],
+        anomalies: [],
+        predictions: [],
+        stockRunout: [],
+        seasonal: {
+          weekdayAvgQuantity: 0,
+          weekendAvgQuantity: 0,
+          mealAverages: [],
+          insights: [],
+        },
         waste: { totalWastedValue: 0, reasons: [], prepEfficiencyIndex: 0 },
         perStudent: [],
       };

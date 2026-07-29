@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
 
-export type NotificationType = 'LOW_STOCK' | 'EXPIRY' | 'PURCHASE' | 'SYSTEM';
-export type NotificationSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
+export type NotificationType = "LOW_STOCK" | "EXPIRY" | "PURCHASE" | "SYSTEM";
+export type NotificationSeverity = "INFO" | "WARNING" | "CRITICAL";
 
 @Injectable()
 export class NotificationsService {
@@ -11,7 +11,7 @@ export class NotificationsService {
   async findAll(userId?: number) {
     return this.prisma.notification.findMany({
       where: { OR: [{ userId: null }, { userId }] },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 50,
     });
   }
@@ -19,7 +19,7 @@ export class NotificationsService {
   async getUnread(userId?: number) {
     return this.prisma.notification.findMany({
       where: { isRead: false, OR: [{ userId: null }, { userId }] },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -27,7 +27,7 @@ export class NotificationsService {
     title: string,
     message: string,
     type: NotificationType,
-    severity: NotificationSeverity = 'INFO',
+    severity: NotificationSeverity = "INFO",
     userId?: number,
   ) {
     return this.prisma.notification.create({
@@ -57,7 +57,11 @@ export class NotificationsService {
   }
 
   /** Called by background jobs to create system alerts */
-  async createSystemAlert(title: string, message: string, severity: NotificationSeverity = 'WARNING') {
-    return this.create(title, message, 'SYSTEM', severity);
+  async createSystemAlert(
+    title: string,
+    message: string,
+    severity: NotificationSeverity = "WARNING",
+  ) {
+    return this.create(title, message, "SYSTEM", severity);
   }
 }

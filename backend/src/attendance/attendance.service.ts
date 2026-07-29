@@ -1,23 +1,23 @@
-import { Injectable, ConflictException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateAttendanceDto } from './dto/create-attendance.dto';
-import { UpdateAttendanceDto } from './dto/update-attendance.dto';
-import { getTodayRangeIST } from '../common/date.utils';
-import { AppGateway } from '../gateway/app.gateway';
+import { Injectable, ConflictException } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { CreateAttendanceDto } from "./dto/create-attendance.dto";
+import { UpdateAttendanceDto } from "./dto/update-attendance.dto";
+import { getTodayRangeIST } from "../common/date.utils";
+import { AppGateway } from "../gateway/app.gateway";
 
 @Injectable()
 export class AttendanceService {
   constructor(
     private prisma: PrismaService,
     private appGateway: AppGateway,
-  ) { }
+  ) {}
 
   async findAll(days: number = 30) {
     const from = new Date();
     from.setDate(from.getDate() - days);
     return this.prisma.attendance.findMany({
       where: { date: { gte: from } },
-      orderBy: { date: 'desc' },
+      orderBy: { date: "desc" },
     });
   }
 
@@ -65,7 +65,7 @@ export class AttendanceService {
     from.setDate(from.getDate() - 7);
     const records = await this.prisma.attendance.findMany({
       where: { date: { gte: from } },
-      orderBy: { date: 'asc' },
+      orderBy: { date: "asc" },
     });
     return records;
   }
@@ -82,17 +82,21 @@ export class AttendanceService {
   getActiveMealSession(): { meal: string; notes: string } {
     const hour = new Date().getHours();
     if (hour >= 6 && hour < 11) {
-      return { meal: 'BREAKFAST', notes: 'Mobile scan: Breakfast' };
+      return { meal: "BREAKFAST", notes: "Mobile scan: Breakfast" };
     } else if (hour >= 11 && hour < 16) {
-      return { meal: 'LUNCH', notes: 'Mobile scan: Lunch' };
+      return { meal: "LUNCH", notes: "Mobile scan: Lunch" };
     } else if (hour >= 16 && hour < 19) {
-      return { meal: 'SNACK', notes: 'Mobile scan: Snack' };
+      return { meal: "SNACK", notes: "Mobile scan: Snack" };
     } else {
-      return { meal: 'DINNER', notes: 'Mobile scan: Dinner' };
+      return { meal: "DINNER", notes: "Mobile scan: Dinner" };
     }
   }
 
-  async registerScan(studentBarcode: string, hostel: string = 'All Hostels', deviceId?: string) {
+  async registerScan(
+    studentBarcode: string,
+    hostel: string = "All Hostels",
+    deviceId?: string,
+  ) {
     const { start, end } = getTodayRangeIST();
     const { meal, notes } = this.getActiveMealSession();
 
@@ -103,14 +107,14 @@ export class AttendanceService {
         mealType: meal,
         timestamp: {
           gte: start,
-          lt: end
-        }
-      }
+          lt: end,
+        },
+      },
     });
 
     if (existingScan) {
       throw new ConflictException(
-        `This student card (${studentBarcode}) has already been scanned for ${meal} session today!`
+        `This student card (${studentBarcode}) has already been scanned for ${meal} session today!`,
       );
     }
 
@@ -121,8 +125,8 @@ export class AttendanceService {
         data: {
           studentId: studentBarcode,
           mealType: meal,
-          deviceId: deviceId || 'Mobile Web Scanner'
-        }
+          deviceId: deviceId || "Mobile Web Scanner",
+        },
       });
 
       // 2. Find or create actual aggregated Meal Attendance count record
@@ -130,14 +134,14 @@ export class AttendanceService {
         where: {
           date: { gte: start, lt: end },
           meal,
-          hostel
-        }
+          hostel,
+        },
       });
 
       if (attendance) {
         attendance = await tx.attendance.update({
           where: { id: attendance.id },
-          data: { count: attendance.count + 1 }
+          data: { count: attendance.count + 1 },
         });
       } else {
         attendance = await tx.attendance.create({
@@ -146,21 +150,21 @@ export class AttendanceService {
             meal,
             count: 1,
             hostel,
-            notes
-          }
+            notes,
+          },
         });
       }
 
       // 3. Emit real-time update over WebSockets
       try {
-        this.appGateway.server.emit('attendance_update', {
+        this.appGateway.server.emit("attendance_update", {
           meal,
           studentId: studentBarcode,
           totalCount: attendance.count,
-          date: start
+          date: start,
         });
       } catch (err) {
-        console.error('Failed to emit WS attendance event:', err.message);
+        console.error("Failed to emit WS attendance event:", err.message);
       }
 
       return {
@@ -168,7 +172,7 @@ export class AttendanceService {
         message: `Welcome! Entry scanning approved for ${meal}.`,
         studentId: studentBarcode,
         activeMeal: meal,
-        totalCount: attendance.count
+        totalCount: attendance.count,
       };
     });
   }

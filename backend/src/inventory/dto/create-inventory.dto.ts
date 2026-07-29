@@ -1,12 +1,12 @@
-import { IsNumber, IsString, IsOptional, IsDateString } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsNumber, IsString, IsOptional, IsDateString } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
 
 export class CreateInventoryDto {
   @ApiProperty({ example: 1 })
   @IsNumber()
   productId: number;
 
-  @ApiProperty({ required: false, example: 'BATCH-2024-001' })
+  @ApiProperty({ required: false, example: "BATCH-2024-001" })
   @IsOptional()
   @IsString()
   batchNumber?: string;
@@ -15,25 +15,25 @@ export class CreateInventoryDto {
   @IsNumber()
   quantity: number;
 
-  @ApiProperty({ example: 'KG' })
+  @ApiProperty({ example: "KG" })
   @IsString()
   unit: string;
 
-  @ApiProperty({ example: 45.5, description: 'Cost per unit in INR' })
+  @ApiProperty({ example: 45.5, description: "Cost per unit in INR" })
   @IsNumber()
   costPerUnit: number;
 
-  @ApiProperty({ required: false, example: '2025-12-31' })
+  @ApiProperty({ required: false, example: "2025-12-31" })
   @IsOptional()
   @IsDateString()
   expiryDate?: string;
 
-  @ApiProperty({ required: false, example: '2024-06-01' })
+  @ApiProperty({ required: false, example: "2024-06-01" })
   @IsOptional()
   @IsDateString()
   manufacturingDate?: string;
 
-  @ApiProperty({ required: false, example: 'Cold Storage - A' })
+  @ApiProperty({ required: false, example: "Cold Storage - A" })
   @IsOptional()
   @IsString()
   location?: string;

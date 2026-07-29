@@ -1,25 +1,34 @@
 import {
-  Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe, UseGuards
-} from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { MenuService } from './menu.service';
-import { CreateMenuDto } from './dto/create-menu.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+  UseGuards,
+} from "@nestjs/common";
+import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
+import { MenuService } from "./menu.service";
+import { CreateMenuDto } from "./dto/create-menu.dto";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
 
-@ApiTags('Menu')
+@ApiTags("Menu")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('menu')
+@Controller("menu")
 export class MenuController {
-  constructor(private readonly menuService: MenuService) { }
+  constructor(private readonly menuService: MenuService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all menu items or filter by date range' })
+  @ApiOperation({ summary: "Get all menu items or filter by date range" })
   findAll(
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
   ) {
     if (startDate && endDate) {
       return this.menuService.findByDateRange(startDate, endDate);
@@ -27,33 +36,32 @@ export class MenuController {
     return this.menuService.findAll();
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get menu item by ID' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  @Get(":id")
+  @ApiOperation({ summary: "Get menu item by ID" })
+  findOne(@Param("id", ParseIntPipe) id: number) {
     return this.menuService.findOne(id);
   }
 
   @Post()
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN')
-  @ApiOperation({ summary: 'Create a new menu plan (Warden/Manager/Admin)' })
+  @Roles("SUPER_ADMIN", "MESS_MANAGER", "HOSTEL_WARDEN")
+  @ApiOperation({ summary: "Create a new menu plan (Warden/Manager/Admin)" })
   create(@Body() dto: CreateMenuDto) {
     return this.menuService.create(dto);
   }
 
-  @Put(':id')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN')
-  @ApiOperation({ summary: 'Update an existing menu plan (Warden/Manager/Admin)' })
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: CreateMenuDto,
-  ) {
+  @Put(":id")
+  @Roles("SUPER_ADMIN", "MESS_MANAGER", "HOSTEL_WARDEN")
+  @ApiOperation({
+    summary: "Update an existing menu plan (Warden/Manager/Admin)",
+  })
+  update(@Param("id", ParseIntPipe) id: number, @Body() dto: CreateMenuDto) {
     return this.menuService.update(id, dto);
   }
 
-  @Delete(':id')
-  @Roles('SUPER_ADMIN', 'MESS_MANAGER', 'HOSTEL_WARDEN')
-  @ApiOperation({ summary: 'Delete a menu plan (Warden/Manager/Admin)' })
-  remove(@Param('id', ParseIntPipe) id: number) {
+  @Delete(":id")
+  @Roles("SUPER_ADMIN", "MESS_MANAGER", "HOSTEL_WARDEN")
+  @ApiOperation({ summary: "Delete a menu plan (Warden/Manager/Admin)" })
+  remove(@Param("id", ParseIntPipe) id: number) {
     return this.menuService.remove(id);
   }
 }
