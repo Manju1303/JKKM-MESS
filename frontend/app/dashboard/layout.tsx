@@ -192,8 +192,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <a href="#main-content" className="skip-to-content">Skip to main content</a>
       <Sidebar />
       <div className={cn(
-        "flex-1 flex flex-col overflow-hidden min-w-0 transition-all duration-300",
-        sidebarCollapsed ? "md:ml-16" : "md:ml-64"
+        "flex-1 flex flex-col overflow-hidden min-w-0 main-content-layout",
+        sidebarCollapsed ? "sidebar-collapsed" : "sidebar-expanded"
       )}>
         <Topbar title={page.title} subtitle={page.subtitle} />
         <main id="main-content" className="flex-1 overflow-y-auto p-6" aria-label={`${page.title} content area`}>

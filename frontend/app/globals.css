@@ -260,3 +260,19 @@ body { font-family: 'Inter', system-ui, sans-serif; background-color: hsl(var(--
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Dashboard Sidebar Spacing Fixes */
+.main-content-layout {
+  transition: margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  margin-left: 0;
+}
+
+@media (min-width: 768px) {
+  .main-content-layout.sidebar-expanded {
+    margin-left: 16rem; /* w-64 */
+  }
+  .main-content-layout.sidebar-collapsed {
+    margin-left: 4rem;  /* w-16 */
+  }
+}
+
