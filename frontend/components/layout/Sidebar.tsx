@@ -75,14 +75,13 @@ export default function Sidebar() {
       )}
 
       <aside className={cn(
-        'flex flex-col h-screen transition-all duration-300 ease-in-out relative flex-shrink-0',
+        'flex flex-col h-screen transition-all duration-300 ease-in-out fixed inset-y-0 left-0 z-50 flex-shrink-0',
         'bg-gradient-to-b from-[hsl(224,90%,12%)] to-[hsl(224,95%,8%)]',
         'border-r border-white/10',
-        // Desktop collapse
-        sidebarCollapsed ? 'md:w-16' : 'md:w-64',
-        // Mobile drawer
-        'fixed inset-y-0 left-0 z-50 w-64 md:relative',
-        mobileSidebarOpen ? 'translate-x-0 animate-in' : '-translate-x-full md:translate-x-0'
+        // Sidebar width
+        sidebarCollapsed ? 'w-64 md:w-16' : 'w-64',
+        // Positioning
+        mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       )}>
         {/* Logo */}
         <div className={cn(

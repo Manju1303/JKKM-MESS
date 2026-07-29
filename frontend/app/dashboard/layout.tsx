@@ -3,10 +3,12 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
+import { useUIStore } from '@/store/uiStore';
 import { socket } from '@/lib/socket';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
 import { ShieldX } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: 'Dashboard', subtitle: 'Overview of mess operations' },
@@ -79,6 +81,7 @@ const isRouteAllowed = (path: string, role: string) => {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, token, user, logout } = useAuthStore();
   const { addNotification } = useNotificationStore();
+  const { sidebarCollapsed } = useUIStore();
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -188,7 +191,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex h-screen overflow-hidden bg-background">
       <a href="#main-content" className="skip-to-content">Skip to main content</a>
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <div className={cn(
+        "flex-1 flex flex-col overflow-hidden min-w-0 transition-all duration-300",
+        sidebarCollapsed ? "md:ml-16" : "md:ml-64"
+      )}>
         <Topbar title={page.title} subtitle={page.subtitle} />
         <main id="main-content" className="flex-1 overflow-y-auto p-6" aria-label={`${page.title} content area`}>
           {allowed ? (

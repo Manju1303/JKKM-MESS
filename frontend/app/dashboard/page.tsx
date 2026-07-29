@@ -254,9 +254,9 @@ export default function DashboardPage() {
               </h3>
               <p className="text-sm text-muted-foreground">Standard active roles ready for deployment testing:</p>
               <ul className="text-xs space-y-1.5 text-muted-foreground bg-muted/50 p-3 rounded-lg border border-border">
-                <li>• **Super Admin**: `admin@jkkm.edu.in`</li>
-                <li>• **Mess Manager**: `messmanager@jkkm.edu.in`</li>
-                <li>• **Hostel Warden**: `warden@jkkm.edu.in`</li>
+                <li>• <strong>Super Admin</strong>: <code>admin@jkkm.edu.in</code></li>
+                <li>• <strong>Mess Manager</strong>: <code>messmanager@jkkm.edu.in</code></li>
+                <li>• <strong>Hostel Warden</strong>: <code>warden@jkkm.edu.in</code></li>
               </ul>
             </div>
           </section>
