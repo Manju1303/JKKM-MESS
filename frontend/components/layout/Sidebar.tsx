@@ -47,7 +47,6 @@ export default function Sidebar() {
     setMobileSidebarOpen(false);
   }, [setMobileSidebarOpen]);
 
-  // Close sidebar on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && mobileSidebarOpen) {
@@ -63,136 +62,148 @@ export default function Sidebar() {
     logout();
   };
 
-  return (
+  const renderNavContent = (isCollapsed: boolean, isMobile: boolean) => (
     <>
-      {/* Mobile Sidebar Backdrop */}
-      {mobileSidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 md:hidden backdrop-blur-xs transition-opacity duration-300"
-          onClick={closeMobileSidebar}
-          aria-hidden="true"
-        />
-      )}
-
-      <aside className={cn(
-        'flex flex-col h-screen transition-all duration-300 ease-in-out fixed inset-y-0 left-0 z-50 flex-shrink-0',
-        'bg-gradient-to-b from-[hsl(224,90%,12%)] to-[hsl(224,95%,8%)]',
-        'border-r border-white/10',
-        // Sidebar width
-        sidebarCollapsed ? 'w-64 md:w-16' : 'w-64',
-        // Positioning
-        mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      {/* Logo */}
+      <div className={cn(
+        'flex items-center gap-3 p-4 border-b border-white/10 justify-between',
+        isCollapsed && 'justify-center p-2.5'
       )}>
-        {/* Logo */}
-        <div className={cn(
-          'flex items-center gap-3 p-4 border-b border-white/10 justify-between',
-          sidebarCollapsed && 'md:justify-center'
-        )}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-lg overflow-hidden p-1">
-              <img src="/logo.png" alt="JKKM Logo" className="w-full h-full object-contain" />
-            </div>
-            {(!sidebarCollapsed || mobileSidebarOpen) && (
-              <div className="animate-in">
-                <p className="text-white font-bold text-sm leading-none">JKKM Mess</p>
-                <p className="text-white/50 text-xs mt-0.5">ERP System</p>
-              </div>
-            )}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-lg overflow-hidden p-1">
+            <img src="/logo.png" alt="JKKM Logo" className="w-full h-full object-contain" />
           </div>
-          {/* Close button on mobile */}
-          {mobileSidebarOpen && (
-            <button
-              onClick={closeMobileSidebar}
-              className="p-1 rounded-lg text-white/50 hover:text-white hover:bg-white/10 md:hidden"
-              aria-label="Close sidebar"
-            >
-              <X className="w-5 h-5" />
-            </button>
+          {(!isCollapsed || isMobile) && (
+            <div className="animate-in truncate">
+              <p className="text-white font-bold text-sm leading-none truncate">JKKM Mess</p>
+              <p className="text-white/50 text-[11px] mt-0.5 truncate">ERP System</p>
+            </div>
           )}
         </div>
+        {isMobile && (
+          <button
+            onClick={closeMobileSidebar}
+            className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10"
+            aria-label="Close sidebar"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
+      </div>
 
-        {/* Toggle button (Desktop only) */}
+      {/* Desktop Toggle Button */}
+      {!isMobile && (
         <button
           onClick={toggleSidebar}
-          className="absolute -right-3 top-7 z-10 w-6 h-6 rounded-full bg-primary hidden md:flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+          className="absolute -right-3 top-7 z-10 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-lg hover:scale-110 transition-transform cursor-pointer border border-white/20"
           aria-label="Toggle sidebar"
         >
-          {sidebarCollapsed
-            ? <ChevronRight className="w-3 h-3 text-white" />
-            : <ChevronLeft className="w-3 h-3 text-white" />}
+          {isCollapsed
+            ? <ChevronRight className="w-3.5 h-3.5 text-white" />
+            : <ChevronLeft className="w-3.5 h-3.5 text-white" />}
         </button>
+      )}
 
-        {/* Navigation */}
-        <nav className="flex-1 py-4 overflow-y-auto overflow-x-hidden scrollbar-thin" aria-label="Main navigation">
-          {(!sidebarCollapsed || mobileSidebarOpen) && (
-            <p className="text-white/30 text-xs font-semibold uppercase tracking-wider px-4 mb-2">
-              Main Menu
-            </p>
-          )}
-          <div className="space-y-0.5 px-2">
-            {filteredItems.map((item) => {
-              const isActive = pathname === item.href ||
-                (item.href !== '/dashboard' && pathname.startsWith(item.href));
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={closeMobileSidebar}
-                  title={(sidebarCollapsed && !mobileSidebarOpen) ? item.label : undefined}
-                  className={cn(
-                    'sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg',
-                    'text-white/70 hover:text-white group transition-all',
-                    isActive && 'sidebar-item active !text-white',
-                    (sidebarCollapsed && !mobileSidebarOpen) && 'justify-center px-2'
-                  )}
-                >
-                  <item.icon className={cn(
-                    'w-4 h-4 flex-shrink-0 transition-colors',
-                    isActive ? 'text-[hsl(28,95%,55%)]' : 'text-white/60 group-hover:text-white/90'
-                  )} />
-                  {(!sidebarCollapsed || mobileSidebarOpen) && (
-                    <span className="text-sm font-medium truncate">{item.label}</span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
+      {/* Navigation Links */}
+      <nav className="flex-1 py-4 overflow-y-auto overflow-x-hidden scrollbar-thin" aria-label="Main navigation">
+        {(!isCollapsed || isMobile) && (
+          <p className="text-white/30 text-[10px] font-bold uppercase tracking-wider px-4 mb-2">
+            Main Menu
+          </p>
+        )}
+        <div className="space-y-0.5 px-2">
+          {filteredItems.map((item) => {
+            const isActive = pathname === item.href ||
+              (item.href !== '/dashboard' && pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={closeMobileSidebar}
+                title={(isCollapsed && !isMobile) ? item.label : undefined}
+                className={cn(
+                  'sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg',
+                  'text-white/70 hover:text-white group transition-all',
+                  isActive && 'sidebar-item active !text-white',
+                  (isCollapsed && !isMobile) && 'justify-center px-2'
+                )}
+              >
+                <item.icon className={cn(
+                  'w-4 h-4 flex-shrink-0 transition-colors',
+                  isActive ? 'text-[hsl(28,95%,55%)]' : 'text-white/60 group-hover:text-white/90'
+                )} />
+                {(!isCollapsed || isMobile) && (
+                  <span className="text-sm font-medium truncate">{item.label}</span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
 
-        {/* User info */}
-        {user && (
-          <div className={cn(
-            'p-3 border-t border-white/10',
-            (sidebarCollapsed && !mobileSidebarOpen) ? 'flex justify-center' : 'block'
-          )}>
-            {(!sidebarCollapsed || mobileSidebarOpen) ? (
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-xs font-bold">{initials}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-xs font-semibold truncate">{user.name}</p>
-                  <p className="text-white/50 text-xs truncate">{user.role}</p>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="text-white/40 hover:text-red-400 transition-colors"
-                  aria-label="Logout"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
+      {/* User Info Footer */}
+      {user && (
+        <div className={cn(
+          'p-3 border-t border-white/10',
+          (isCollapsed && !isMobile) ? 'flex justify-center' : 'block'
+        )}>
+          {(!isCollapsed || isMobile) ? (
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-xs font-bold">{initials}</span>
               </div>
-            ) : (
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-xs font-semibold truncate">{user.name}</p>
+                <p className="text-white/50 text-[10px] truncate">{user.role}</p>
+              </div>
               <button
                 onClick={handleLogout}
-                className="text-white/40 hover:text-red-400 transition-colors"
+                className="text-white/40 hover:text-red-400 transition-colors p-1"
                 aria-label="Logout"
+                title="Logout"
               >
                 <LogOut className="w-4 h-4" />
               </button>
-            )}
-          </div>
-        )}
+            </div>
+          ) : (
+            <button
+              onClick={handleLogout}
+              className="text-white/40 hover:text-red-400 transition-colors p-1"
+              aria-label="Logout"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile Drawer (Overlay) */}
+      {mobileSidebarOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/60 md:hidden backdrop-blur-xs transition-opacity duration-300"
+            onClick={closeMobileSidebar}
+            aria-hidden="true"
+          />
+          <aside className="flex flex-col h-screen fixed inset-y-0 left-0 z-50 w-64 md:hidden bg-gradient-to-b from-[hsl(224,90%,12%)] to-[hsl(224,95%,8%)] border-r border-white/10 flex-shrink-0 shadow-2xl">
+            {renderNavContent(false, true)}
+          </aside>
+        </>
+      )}
+
+      {/* Desktop Sidebar (In-flow flex child) */}
+      <aside className={cn(
+        'hidden md:flex flex-col h-screen relative z-30 flex-shrink-0 transition-all duration-300 ease-in-out',
+        'bg-gradient-to-b from-[hsl(224,90%,12%)] to-[hsl(224,95%,8%)]',
+        'border-r border-white/10',
+        sidebarCollapsed ? 'w-16' : 'w-64'
+      )}>
+        {renderNavContent(sidebarCollapsed, false)}
       </aside>
     </>
   );
