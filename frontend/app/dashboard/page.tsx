@@ -6,13 +6,13 @@ import { useAuthStore } from '@/store/authStore';
 import { inventoryAPI, attendanceAPI, purchasesAPI, complaintsAPI, menuAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import {
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import {
   Package, AlertTriangle, IndianRupee, Clock,
-  TrendingDown, Trash2, ChefHat, Users, ShieldAlert,
-  FileText, CheckCircle, MessageSquare, ListTodo, Plus, Calendar, Eye, ClipboardList, ArrowRight, Camera
+  TrendingDown, ChefHat, Users, ShieldAlert,
+  FileText, CheckCircle, MessageSquare, ListTodo, Plus, Calendar, ClipboardList, ArrowRight, Camera
 } from 'lucide-react';
 
 const CustomTooltip = ({ active, payload, label }: {

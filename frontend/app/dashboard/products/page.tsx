@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { productsAPI } from '@/lib/api';
-import { Search, Plus, Package, Tag, Filter } from 'lucide-react';
+import { Search, Plus, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
 

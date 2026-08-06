@@ -51,10 +51,6 @@ export default function ReportsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchReports();
-  }, []);
-
   const fetchReports = async () => {
     try {
       setLoading(true);
@@ -66,6 +62,10 @@ export default function ReportsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
 
   const handleGenerateReport = async (e: React.FormEvent) => {
     e.preventDefault();

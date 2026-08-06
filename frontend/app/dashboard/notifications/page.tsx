@@ -1,28 +1,18 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { notificationsAPI } from '@/lib/api';
 import { useNotificationStore } from '@/store/notificationStore';
 import {
   Bell, Check, AlertTriangle, AlertCircle, Info, Calendar, Clock, Sparkles
 } from 'lucide-react';
-import { cn, formatDateTime } from '@/lib/utils';
-
-interface AlertItem {
-  id: number;
-  title: string;
-  message: string;
-  type: string;       // LOW_STOCK, EXPIRY, PURCHASE, SYSTEM
-  severity: string;   // INFO, WARNING, CRITICAL
-  isRead: boolean;
-  createdAt: string;
-}
+import { cn } from '@/lib/utils';
 
 export default function NotificationsPage() {
   const { notifications, unreadCount, setNotifications, markRead, markAllRead } = useNotificationStore();
   const [filter, setFilter] = useState<'ALL' | 'UNREAD' | 'CRITICAL'>('ALL');
   const [loading, setLoading] = useState(true);
 
-  const fetchAlerts = async () => {
+  const fetchAlerts = useCallback(async () => {
     try {
       setLoading(true);
       const res = await notificationsAPI.getAll();
@@ -34,11 +24,11 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [setNotifications]);
 
   useEffect(() => {
     fetchAlerts();
-  }, []);
+  }, [fetchAlerts]);
 
   const handleMarkAsRead = async (id: number) => {
     try {

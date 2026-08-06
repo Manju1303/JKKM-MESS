@@ -1,11 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { inventoryAPI } from '@/lib/api';
-import { formatCurrency, formatDate, getDaysUntilExpiry, getStockStatus } from '@/lib/utils';
+import { formatCurrency, getDaysUntilExpiry, getStockStatus } from '@/lib/utils';
 import {
-  Search, Filter, Plus, AlertTriangle, Clock, Package,
-  TrendingDown, BarChart3, RefreshCw, Download
+  Search, Plus, AlertTriangle, Clock, Package,
+  BarChart3, RefreshCw, Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -74,7 +74,7 @@ export default function InventoryPage() {
     document.body.removeChild(link);
   };
 
-  const load = async (silent = false) => {
+  const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
@@ -98,9 +98,9 @@ export default function InventoryPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const filtered = items.filter(item => {
     const matchesSearch =

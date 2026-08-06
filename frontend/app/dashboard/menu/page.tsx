@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { menuAPI } from '@/lib/api';
 import { Loader2, Plus, Trash2, Calendar, Coffee, UtensilsCrossed, Moon, Cake, AlertCircle, Edit2 } from 'lucide-react';
@@ -38,21 +38,21 @@ export default function MenuPage() {
 
   const isManager = user && ['SUPER_ADMIN', 'MESS_MANAGER'].includes(user.role);
 
-  const fetchMenus = async () => {
+  const fetchMenus = useCallback(async () => {
     try {
       setLoading(true);
       const res = await menuAPI.getAll();
       setMenus(res.data);
-    } catch (err) {
+    } catch {
       setError('Failed to fetch menu planner. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchMenus();
-  }, []);
+  }, [fetchMenus]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +79,7 @@ export default function MenuPage() {
         notes: '',
       });
       fetchMenus();
-    } catch (err) {
+    } catch {
       setError('Failed to save menu plan. Please verify authentication and JSON format.');
     } finally {
       setSubmitting(false);
@@ -111,7 +111,7 @@ export default function MenuPage() {
     try {
       await menuAPI.delete(id);
       fetchMenus();
-    } catch (err) {
+    } catch {
       setError('Failed to delete menu plan.');
     }
   };

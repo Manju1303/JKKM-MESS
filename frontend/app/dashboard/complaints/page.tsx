@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { complaintsAPI } from '@/lib/api';
-import { Loader2, Plus, MessageSquare, CheckCircle, AlertCircle, AlertTriangle, User } from 'lucide-react';
+import { Loader2, Plus, MessageSquare, CheckCircle, AlertCircle, User } from 'lucide-react';
 
 interface ComplaintItem {
   id: number;
@@ -30,21 +30,21 @@ export default function ComplaintsPage() {
   const isStudent = user && user.role === 'STUDENT_VIEWER';
   const isWardenOrAdmin = user && ['SUPER_ADMIN', 'HOSTEL_WARDEN'].includes(user.role);
 
-  const fetchComplaints = async () => {
+  const fetchComplaints = useCallback(async () => {
     try {
       setLoading(true);
       const res = await complaintsAPI.getAll();
       setComplaints(res.data);
-    } catch (err) {
+    } catch {
       setError('Failed to load complaints registry.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchComplaints();
-  }, []);
+  }, [fetchComplaints]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +55,7 @@ export default function ComplaintsPage() {
       setShowForm(false);
       setForm({ title: '', description: '' });
       fetchComplaints();
-    } catch (err) {
+    } catch {
       setError('Failed to submit complaint. Try again.');
     } finally {
       setSubmitting(false);
@@ -66,7 +66,7 @@ export default function ComplaintsPage() {
     try {
       await complaintsAPI.resolve(id);
       fetchComplaints();
-    } catch (err) {
+    } catch {
       setError('Failed to resolve complaint.');
     }
   };

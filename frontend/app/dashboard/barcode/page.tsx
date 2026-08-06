@@ -42,13 +42,8 @@ export default function BarcodePage() {
       .catch(err => console.error('Failed to load products for datalist:', err));
   }, []);
 
-  // Cleanup camera on unmount
-  useEffect(() => {
-    return () => { stopCamera(); };
-  }, []);
-
   // ── Camera resource cleanup ─────────────────────────────────────────────────
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     // Stop ZXing decode loop first
     if (scanControlsRef.current) {
       try { scanControlsRef.current.stop(); } catch { /* ignore */ }
@@ -62,7 +57,12 @@ export default function BarcodePage() {
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-  };
+  }, []);
+
+  // Cleanup camera on unmount
+  useEffect(() => {
+    return () => { stopCamera(); };
+  }, [stopCamera]);
 
   const stopScanning = () => {
     stopCamera();
@@ -207,7 +207,7 @@ export default function BarcodePage() {
       const controls = await codeReader.decodeFromStream(
         stream,
         videoRef.current,
-        (result, err) => {
+        (result, _err) => {
           if (result) {
             const text = result.getText();
             // ── Step 4: Stop scanner and look up the product ────────────────
@@ -444,7 +444,7 @@ export default function BarcodePage() {
                   <p className="text-xs text-red-400 mt-1.5">
                     Go to{' '}
                     <a href="/dashboard/products" className="underline font-semibold">Products</a>
-                    {' '}and add a product with barcode/code <code className="font-mono">"{barcode}"</code>.
+                    {' '}and add a product with barcode/code <code className="font-mono">&quot;{barcode}&quot;</code>.
                   </p>
                 )}
               </div>
@@ -454,7 +454,6 @@ export default function BarcodePage() {
           {/* Camera viewfinder */}
           {isScanning && (
             <div className="bg-black border border-border rounded-xl overflow-hidden relative min-h-[340px] flex items-center justify-center">
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
               <video
                 ref={videoRef}
                 className="w-full h-full object-cover max-h-[420px]"

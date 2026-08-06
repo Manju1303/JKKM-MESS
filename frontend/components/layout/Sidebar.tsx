@@ -1,14 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Package, ShoppingCart, Truck, ChefHat, BarChart3,
   Users, QrCode, Bell, Settings, LogOut, Boxes, Brain,
-  ChevronLeft, ChevronRight, Building2, Calendar, X, ClipboardList, ShieldAlert, Utensils
+  ChevronLeft, ChevronRight, Calendar, X, ClipboardList, ShieldAlert, Utensils
 } from 'lucide-react';
 
 const navItems = [
@@ -43,9 +43,9 @@ export default function Sidebar() {
     ? user.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
     : '??';
 
-  const closeMobileSidebar = () => {
+  const closeMobileSidebar = useCallback(() => {
     setMobileSidebarOpen(false);
-  };
+  }, [setMobileSidebarOpen]);
 
   // Close sidebar on Escape key
   useEffect(() => {
@@ -56,7 +56,7 @@ export default function Sidebar() {
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [mobileSidebarOpen]);
+  }, [mobileSidebarOpen, closeMobileSidebar]);
 
   const handleLogout = () => {
     closeMobileSidebar();

@@ -1,9 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { aiAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import {
-  Brain, AlertTriangle, TrendingUp, Cpu, Sparkles, BarChart3, Info, HelpCircle, RefreshCw,
+  Brain, AlertTriangle, Sparkles, BarChart3, Info, RefreshCw,
   Users, Trash2, Gauge, Clock, Calendar, ShieldAlert
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -43,7 +43,7 @@ const COLORS = ['#FF8042', '#0088FE', '#00C49F', '#FFBB28', '#8884d8'];
 export default function AiInsightsPage() {
   const [activeTab, setActiveTab] = useState<'core' | 'attendance' | 'depletion' | 'seasonal' | 'waste'>('core');
   const [data, setData] = useState(emptyInsights);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Attendance forecasting slider state
@@ -51,7 +51,7 @@ export default function AiInsightsPage() {
   const [attendanceForecast, setAttendanceForecast] = useState<any[]>([]);
   const [forecastingLoading, setForecastingLoading] = useState(false);
 
-  const fetchInsights = async () => {
+  const fetchInsights = useCallback(async () => {
     try {
       setLoading(true);
       const res = await aiAPI.getInsights();
@@ -82,9 +82,9 @@ export default function AiInsightsPage() {
       setLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, []);
 
-  const fetchAttendanceForecast = async (count: number) => {
+  const fetchAttendanceForecast = useCallback(async (count: number) => {
     try {
       setForecastingLoading(true);
       const res = await aiAPI.getAttendanceForecast(count);
@@ -99,15 +99,15 @@ export default function AiInsightsPage() {
     } finally {
       setForecastingLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchInsights();
   }, []);
 
   useEffect(() => {
+    fetchInsights();
+  }, [fetchInsights]);
+
+  useEffect(() => {
     fetchAttendanceForecast(studentCount);
-  }, [studentCount]);
+  }, [studentCount, fetchAttendanceForecast]);
 
   const triggerRefresh = () => {
     setIsRefreshing(true);

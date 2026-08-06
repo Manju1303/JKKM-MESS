@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { attendanceAPI } from '@/lib/api';
 import {
   Calendar, Users, Plus, CheckCircle2, TrendingUp, AlertCircle, Building, Clock,
-  Camera, Keyboard, RefreshCw, X, FlipHorizontal, QrCode
+  Camera, Keyboard, X, FlipHorizontal, QrCode
 } from 'lucide-react';
 import { cn, formatDate } from '@/lib/utils';
 import {
@@ -52,7 +52,7 @@ export default function AttendancePage() {
   const [logs, setLogs] = useState<AttendanceLog[]>([]);
   const [weeklyData, setWeeklyData] = useState<any[]>([]);
   const [stats, setStats] = useState({ todayCount: 0, weeklyAvg: 0, peakCount: 0 });
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   // Mode Selection State
   const [entryMode, setEntryMode] = useState<'MANUAL' | 'SCANNER'>('MANUAL');
@@ -127,7 +127,7 @@ export default function AttendancePage() {
     };
   }, [stopCamera]);
 
-  const fetchAttendance = async () => {
+  const fetchAttendance = useCallback(async () => {
     try {
       setLoading(true);
       const [logsRes, statsRes, trendRes] = await Promise.all([
@@ -145,11 +145,11 @@ export default function AttendancePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchAttendance();
-  }, []);
+  }, [fetchAttendance]);
 
   const handleScanSubmit = async (barcodeVal: string) => {
     const code = barcodeVal.trim();
@@ -273,7 +273,7 @@ export default function AttendancePage() {
           </div>
           <div>
             <p className="text-2xl font-bold text-foreground">{stats.todayCount}</p>
-            <p className="text-sm text-muted-foreground mt-0.5">Today's Headcount</p>
+            <p className="text-sm text-muted-foreground mt-0.5">Today&apos;s Headcount</p>
             <p className="text-xs text-muted-foreground/75 mt-1">Across all active hostels</p>
           </div>
         </div>

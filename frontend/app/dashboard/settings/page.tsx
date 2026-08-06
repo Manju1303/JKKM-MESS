@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 import { usersAPI } from '@/lib/api';
 import {
   Settings, User, Database, Server, Mail, Lock, Shield, CheckCircle2,
-  AlertCircle, Globe, Cloud, Bell, HelpCircle
+  AlertCircle, Cloud, Bell
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

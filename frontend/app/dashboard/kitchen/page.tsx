@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { kitchenAPI, productsAPI, inventoryAPI, aiAPI } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
-import { Plus, Search, ChefHat, Calendar, Users, Percent, Clock, AlertCircle, CheckCircle2, TrendingUp, DollarSign, Brain } from 'lucide-react';
+import { Plus, Search, ChefHat, Calendar, Users, Clock, AlertCircle, TrendingUp, DollarSign, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
@@ -70,10 +70,6 @@ export default function KitchenPage() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -95,6 +91,10 @@ export default function KitchenPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const checkFEFOCompliance = async (pId: string, bNum: string) => {
     if (!pId || !bNum) {

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { loginActivityAPI } from '@/lib/api';
 import { Loader2, ShieldAlert, CheckCircle2, XCircle, Search, Laptop, KeyRound } from 'lucide-react';
@@ -21,23 +21,23 @@ export default function AuditLogsPage() {
   const [error, setError] = useState('');
   const [emailFilter, setEmailFilter] = useState('');
 
-  const fetchLogs = async (filterEmail?: string) => {
+  const fetchLogs = useCallback(async (filterEmail?: string) => {
     try {
       setLoading(true);
       const res = await loginActivityAPI.getAll(filterEmail);
       setLogs(res.data);
-    } catch (err) {
+    } catch {
       setError('Failed to fetch activity logs.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (user?.role === 'SUPER_ADMIN') {
       fetchLogs();
     }
-  }, [user]);
+  }, [user, fetchLogs]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
